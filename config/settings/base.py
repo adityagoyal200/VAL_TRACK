@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "apps.common",
     "apps.accounts",
     "apps.profiles",
+    "apps.integrations",
 ]
 
 MIDDLEWARE = [
@@ -128,6 +129,12 @@ CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_TASK_TIME_LIMIT = 60
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+CELERY_BEAT_SCHEDULE = {
+    "refresh-all-ranks": {
+        "task": "apps.integrations.tasks.refresh_all_ranks",
+        "schedule": 60 * 60 * 3,  # every 3 hours
+    },
+}
 
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 CORS_ALLOW_CREDENTIALS = True
@@ -139,6 +146,10 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Local dev keeps uploads on disk; production swaps default storage to R2
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

@@ -14,3 +14,4 @@ httpx>=0.28
 django-environ>=0.12
 django-filter>=25.1
 drf-spectacular>=0.28
+Pillow>=11.0

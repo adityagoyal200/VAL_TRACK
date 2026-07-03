@@ -27,6 +27,7 @@ class PlayerProfileSerializer(serializers.ModelSerializer):
     role_tags = serializers.SerializerMethodField()
     schedule_blocks = ScheduleBlockSerializer(many=True, read_only=True)
     onboarding_completed = serializers.SerializerMethodField()
+    riot_link = serializers.SerializerMethodField()
 
     class Meta:
         model = PlayerProfile
@@ -38,6 +39,7 @@ class PlayerProfileSerializer(serializers.ModelSerializer):
             "role_tags",
             "schedule_blocks",
             "onboarding_completed",
+            "riot_link",
         ]
 
     def get_role_tags(self, obj):
@@ -45,6 +47,12 @@ class PlayerProfileSerializer(serializers.ModelSerializer):
 
     def get_onboarding_completed(self, obj):
         return obj.onboarding_completed_at is not None
+
+    def get_riot_link(self, obj):
+        from apps.integrations.serializers import RiotLinkStatusSerializer
+
+        link = getattr(obj.user, "riot_link", None)
+        return RiotLinkStatusSerializer(link).data if link else None
 
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):
