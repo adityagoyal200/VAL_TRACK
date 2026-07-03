@@ -12,6 +12,7 @@ export interface User {
   username: string
   date_joined: string
   social_accounts: SocialAccount[]
+  onboarding_completed: boolean
 }
 
 export interface LoginResponse {

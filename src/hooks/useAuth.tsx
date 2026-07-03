@@ -16,6 +16,8 @@ interface AuthContextValue {
   loading: boolean
   /** called by the OAuth callback pages after a successful code exchange */
   onLogin: (access: string, user: User) => void
+  /** re-fetches /me, e.g. after onboarding completes */
+  refreshUser: () => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -49,6 +51,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(nextUser)
   }, [])
 
+  const refreshUser = useCallback(async () => {
+    setUser(await fetchMe())
+  }, [])
+
   const logout = useCallback(async () => {
     try {
       await apiLogout()
@@ -59,8 +65,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo(
-    () => ({ user, loading, onLogin, logout }),
-    [user, loading, onLogin, logout],
+    () => ({ user, loading, onLogin, refreshUser, logout }),
+    [user, loading, onLogin, refreshUser, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
