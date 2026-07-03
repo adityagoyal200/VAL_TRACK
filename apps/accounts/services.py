@@ -29,6 +29,10 @@ class OAuthError(Exception):
     """Raised when the provider rejects the exchange or returns bad data."""
 
 
+class LinkConflict(Exception):
+    """Raised when a provider identity can't be attached to this user."""
+
+
 def exchange_google_code(code: str, redirect_uri: str, code_verifier: str) -> dict:
     """Returns {"uid", "email", "name"} for the Google account."""
     token_resp = httpx.post(
@@ -128,14 +132,49 @@ def login_social_user(provider: str, info: dict) -> User:
             user = User.objects.create_user(email=info["email"], username=_unique_username(display))
         account = SocialAccount(user=user, provider=provider, provider_uid=info["uid"])
 
+    _apply_provider_fields(account, provider, info)
+    account.save()
+
+    user.last_login = timezone.now()
+    user.save(update_fields=["last_login"])
+    return user
+
+
+def _apply_provider_fields(account: SocialAccount, provider: str, info: dict) -> None:
     if provider == SocialAccount.Provider.DISCORD:
         account.discord_username = info["username"]
         account.discord_avatar_hash = info["avatar"]
         account.access_token = info["access_token"]
         account.refresh_token = info["refresh_token"]
         account.token_expires_at = timezone.now() + timedelta(seconds=info["expires_in"])
-    account.save()
 
-    user.last_login = timezone.now()
-    user.save(update_fields=["last_login"])
-    return user
+
+@transaction.atomic
+def link_social_account(user: User, provider: str, info: dict) -> SocialAccount:
+    """Attach a verified provider identity to an already-authenticated user
+    (used by the settings page, regardless of email match)."""
+    existing = SocialAccount.objects.filter(
+        provider=provider, provider_uid=info["uid"]
+    ).first()
+    if existing is not None:
+        if existing.user_id == user.id:
+            return existing
+        raise LinkConflict("That account is already linked to a different user.")
+    if SocialAccount.objects.filter(user=user, provider=provider).exists():
+        raise LinkConflict(f"You already have a {provider} account linked.")
+
+    account = SocialAccount(user=user, provider=provider, provider_uid=info["uid"])
+    _apply_provider_fields(account, provider, info)
+    account.save()
+    return account
+
+
+def unlink_social_account(user: User, provider: str) -> None:
+    """Detach a provider; refused if it's the user's only login method."""
+    accounts = list(SocialAccount.objects.filter(user=user))
+    target = next((a for a in accounts if a.provider == provider), None)
+    if target is None:
+        raise LinkConflict(f"No {provider} account is linked.")
+    if len(accounts) <= 1:
+        raise LinkConflict("You can't unlink your only login method.")
+    target.delete()

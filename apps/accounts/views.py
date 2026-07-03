@@ -74,6 +74,60 @@ class DiscordCallbackView(_SocialCallbackView):
         return services.exchange_discord_code(data["code"], data["redirect_uri"])
 
 
+class _SocialLinkView(APIView):
+    """Attach a provider to the already-authenticated user (settings page)."""
+
+    permission_classes = [IsAuthenticated]
+    provider: str
+    callback_serializer_class: type
+
+    def exchange(self, data: dict) -> dict:
+        raise NotImplementedError
+
+    def post(self, request):
+        serializer = self.callback_serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            info = self.exchange(serializer.validated_data)
+            services.link_social_account(request.user, self.provider, info)
+        except services.OAuthError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except services.LinkConflict as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+        return Response(UserSerializer(request.user).data)
+
+
+class GoogleLinkView(_SocialLinkView):
+    provider = SocialAccount.Provider.GOOGLE
+    callback_serializer_class = GoogleCallbackSerializer
+
+    def exchange(self, data):
+        return services.exchange_google_code(
+            data["code"], data["redirect_uri"], data["code_verifier"]
+        )
+
+
+class DiscordLinkView(_SocialLinkView):
+    provider = SocialAccount.Provider.DISCORD
+    callback_serializer_class = DiscordCallbackSerializer
+
+    def exchange(self, data):
+        return services.exchange_discord_code(data["code"], data["redirect_uri"])
+
+
+class UnlinkView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, provider):
+        if provider not in SocialAccount.Provider.values:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        try:
+            services.unlink_social_account(request.user, provider)
+        except services.LinkConflict as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+        return Response(UserSerializer(request.user).data)
+
+
 class CookieTokenRefreshView(APIView):
     """Reads the refresh token from the httpOnly cookie, rotates it, and
     returns a fresh access token. The SPA never touches the refresh token."""
