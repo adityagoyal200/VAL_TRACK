@@ -111,6 +111,13 @@ SIMPLE_JWT = {
     "UPDATE_LAST_LOGIN": True,
 }
 
+# Refresh token lives in an httpOnly cookie scoped to the auth endpoints;
+# the SPA only ever holds the short-lived access token in memory.
+AUTH_COOKIE_NAME = "refresh_token"
+AUTH_COOKIE_SECURE = False
+AUTH_COOKIE_SAMESITE = "Lax"
+AUTH_COOKIE_PATH = "/api/auth/"
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "Valo LFG API",
     "VERSION": "0.1.0",

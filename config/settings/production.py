@@ -2,6 +2,11 @@ from .base import *  # noqa: F401,F403
 
 DEBUG = False
 
+# Frontend (Vercel) and backend (Railway/Render) are different sites,
+# so the refresh cookie must be SameSite=None + Secure to be sent cross-site.
+AUTH_COOKIE_SECURE = True
+AUTH_COOKIE_SAMESITE = "None"
+
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True

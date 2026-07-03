@@ -3,6 +3,8 @@ import uuid
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 
+from apps.common.models import TimeStampedModel
+
 
 class UserManager(BaseUserManager):
     use_in_migrations = True
@@ -42,3 +44,29 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
+
+
+class SocialAccount(TimeStampedModel):
+    class Provider(models.TextChoices):
+        GOOGLE = "google", "Google"
+        DISCORD = "discord", "Discord"
+
+    user = models.ForeignKey(User, related_name="social_accounts", on_delete=models.CASCADE)
+    provider = models.CharField(max_length=16, choices=Provider.choices)
+    provider_uid = models.CharField(max_length=128)
+    # Discord display fields, refreshed periodically; blank for Google accounts
+    discord_username = models.CharField(max_length=64, blank=True)
+    discord_avatar_hash = models.CharField(max_length=128, blank=True)
+    # Only Discord tokens are kept (to re-fetch avatar/username); Google's are discarded
+    access_token = models.TextField(blank=True)
+    refresh_token = models.TextField(blank=True)
+    token_expires_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["provider", "provider_uid"], name="uniq_provider_account"),
+            models.UniqueConstraint(fields=["user", "provider"], name="uniq_user_provider"),
+        ]
+
+    def __str__(self):
+        return f"{self.provider}:{self.provider_uid}"
