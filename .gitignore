@@ -10,4 +10,5 @@ media/
 .coverage
 htmlcov/
 .idea/
-.vscode/
+.vscode/*
+!.vscode/settings.json
