@@ -41,3 +41,21 @@ export function fetchMe() {
 export function logout() {
   return apiFetch<void>('/api/auth/logout/', { method: 'POST' })
 }
+
+export function linkGoogle(code: string, redirectUri: string, codeVerifier: string) {
+  return apiFetch<User>('/api/auth/google/link/', {
+    method: 'POST',
+    body: JSON.stringify({ code, redirect_uri: redirectUri, code_verifier: codeVerifier }),
+  })
+}
+
+export function linkDiscord(code: string, redirectUri: string) {
+  return apiFetch<User>('/api/auth/discord/link/', {
+    method: 'POST',
+    body: JSON.stringify({ code, redirect_uri: redirectUri }),
+  })
+}
+
+export function unlinkProvider(provider: 'google' | 'discord') {
+  return apiFetch<User>(`/api/auth/${provider}/unlink/`, { method: 'DELETE' })
+}

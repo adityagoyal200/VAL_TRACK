@@ -1,4 +1,5 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -18,6 +19,9 @@ export function LiveQueuePage() {
         <h1 className="text-2xl font-semibold">Live Queue</h1>
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground">{user?.username}</span>
+          <Button variant="ghost" size="icon-sm" render={<Link to="/settings" />}>
+            <Settings />
+          </Button>
           <Button variant="outline" size="sm" onClick={handleLogout}>
             Log out
           </Button>

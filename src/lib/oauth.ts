@@ -23,6 +23,18 @@ export function redirectUriFor(provider: 'google' | 'discord'): string {
   return `${window.location.origin}/auth/${provider}/callback`
 }
 
+/** When set before the provider redirect, the callback page attaches the
+ * account to the current user instead of logging in. */
+export function setLinkMode(provider: 'google' | 'discord') {
+  sessionStorage.setItem(`oauth_${provider}_link`, '1')
+}
+
+export function consumeLinkMode(provider: 'google' | 'discord'): boolean {
+  const isLink = sessionStorage.getItem(`oauth_${provider}_link`) === '1'
+  sessionStorage.removeItem(`oauth_${provider}_link`)
+  return isLink
+}
+
 /** Builds the Google consent URL (PKCE + state), stashing verifier/state in
  * sessionStorage for the callback page. */
 export async function startGoogleLogin(): Promise<void> {
