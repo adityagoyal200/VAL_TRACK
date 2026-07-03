@@ -1,4 +1,7 @@
 import { MessageCircle } from 'lucide-react'
+import { Navigate } from 'react-router-dom'
+import { startDiscordLogin, startGoogleLogin } from '@/lib/oauth'
+import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -32,10 +35,14 @@ function GoogleIcon() {
 }
 
 export function LoginPage() {
-  // TODO(M1): wire these to the real OAuth redirect flow once backend
-  // /api/auth/{google,discord}/callback/ endpoints exist.
-  const handleGoogleLogin = () => {}
-  const handleDiscordLogin = () => {}
+  const { user, loading } = useAuth()
+
+  if (!loading && user) {
+    return <Navigate to="/queue" replace />
+  }
+
+  const handleGoogleLogin = () => void startGoogleLogin()
+  const handleDiscordLogin = () => startDiscordLogin()
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
