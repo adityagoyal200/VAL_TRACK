@@ -11,11 +11,23 @@ class SocialAccountSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     social_accounts = SocialAccountSerializer(many=True, read_only=True)
+    onboarding_completed = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["id", "email", "username", "date_joined", "social_accounts"]
+        fields = [
+            "id",
+            "email",
+            "username",
+            "date_joined",
+            "social_accounts",
+            "onboarding_completed",
+        ]
         read_only_fields = ["id", "email", "date_joined"]
+
+    def get_onboarding_completed(self, obj) -> bool:
+        profile = getattr(obj, "profile", None)
+        return bool(profile and profile.onboarding_completed_at)
 
 
 class GoogleCallbackSerializer(serializers.Serializer):

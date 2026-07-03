@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     # local
     "apps.common",
     "apps.accounts",
+    "apps.profiles",
 ]
 
 MIDDLEWARE = [
