@@ -9,7 +9,7 @@ doesn't need to be fresher than ~15 minutes.
 """
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone as dt_timezone
+from datetime import datetime, timedelta, timezone as dt_timezone
 
 import httpx
 from django.conf import settings
@@ -50,6 +50,8 @@ class RiotMMR:
     current_tier: str  # "" when unranked
     current_rr: int | None
     peak_tier: str
+    current_division: int | None = None  # 1-3 within a tier; None for Radiant/unranked
+    peak_division: int | None = None
 
 
 def _headers() -> dict:
@@ -80,6 +82,17 @@ def _parse_tier(name: str | None) -> str:
     return base if base in _TIERS else ""
 
 
+def _parse_division(name: str | None) -> int | None:
+    """Division number from a tier name ("Diamond 2" -> 2). Tiers without
+    divisions (Radiant) or unranked return None."""
+    if not name:
+        return None
+    parts = name.split()
+    if len(parts) >= 2 and parts[-1].isdigit():
+        return int(parts[-1])
+    return None
+
+
 def get_account(game_name: str, tag_line: str) -> RiotAccount:
     cache_key = f"riot:account:{game_name.lower()}#{tag_line.lower()}"
     cached = cache.get(cache_key)
@@ -99,7 +112,7 @@ def get_account(game_name: str, tag_line: str) -> RiotAccount:
 
 
 def get_mmr(region: str, puuid: str) -> RiotMMR:
-    cache_key = f"riot:mmr:{puuid}"
+    cache_key = f"riot:mmr:v2:{puuid}"  # v2: payload now includes division
     cached = cache.get(cache_key)
     if cached:
         return RiotMMR(**cached)
@@ -107,31 +120,65 @@ def get_mmr(region: str, puuid: str) -> RiotMMR:
     data = _get(f"/valorant/v3/by-puuid/mmr/{region}/pc/{puuid}")
     current = data.get("current") or {}
     peak = data.get("peak") or {}
+    current_name = (current.get("tier") or {}).get("name")
+    peak_name = (peak.get("tier") or {}).get("name")
     mmr = RiotMMR(
-        current_tier=_parse_tier((current.get("tier") or {}).get("name")),
+        current_tier=_parse_tier(current_name),
         current_rr=current.get("rr"),
-        peak_tier=_parse_tier((peak.get("tier") or {}).get("name")),
+        peak_tier=_parse_tier(peak_name),
+        current_division=_parse_division(current_name),
+        peak_division=_parse_division(peak_name),
     )
     cache.set(cache_key, mmr.__dict__, MMR_CACHE_TTL)
     return mmr
 
 
+# A match started slightly before the recorded window start still counts —
+# absorbs clock skew between the client, Riot's servers, and our own clock.
+VERIFY_CLOCK_SKEW = timedelta(seconds=120)
+
+
+def _parse_match_start(meta: dict) -> datetime | None:
+    """Match start time from v4 metadata (ISO `started_at`), falling back to
+    the older unix `game_start` shape, as a tz-aware UTC datetime."""
+    raw = meta.get("started_at") or meta.get("game_start_iso")
+    if raw:
+        try:
+            started = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+            return started if started.tzinfo else started.replace(tzinfo=dt_timezone.utc)
+        except ValueError:
+            pass
+    unix = meta.get("game_start")
+    if isinstance(unix, (int, float)):
+        return datetime.fromtimestamp(unix, tz=dt_timezone.utc)
+    return None
+
+
 def get_latest_match_after(region: str, puuid: str, after: datetime) -> str | None:
-    """Returns the id of a match that STARTED after `after`, or None.
-    Deliberately uncached — this drives live verification polling."""
-    data = _get(f"/valorant/v4/by-puuid/matches/{region}/pc/{puuid}?size=1")
+    """Returns the id of a recent match that STARTED at/after `after` (minus a
+    small skew tolerance), or None. Uncached — drives live verification polling."""
+    data = _get(f"/valorant/v4/by-puuid/matches/{region}/pc/{puuid}?size=5")
     matches = data if isinstance(data, list) else []
+    threshold = after - VERIFY_CLOCK_SKEW
+
+    newest_seen = None
     for match in matches:
         meta = match.get("metadata") or {}
-        started_at = meta.get("started_at")
-        if not started_at:
+        started = _parse_match_start(meta)
+        if started is None:
             continue
-        try:
-            started = datetime.fromisoformat(started_at.replace("Z", "+00:00"))
-        except ValueError:
-            continue
-        if started.tzinfo is None:
-            started = started.replace(tzinfo=dt_timezone.utc)
-        if started >= after:
-            return meta.get("match_id") or "unknown"
+        if newest_seen is None or started > newest_seen:
+            newest_seen = started
+        if started >= threshold:
+            match_id = meta.get("match_id") or "unknown"
+            logger.info("verification: match %s started %s (>= %s)", match_id, started, threshold)
+            return match_id
+
+    if newest_seen is not None:
+        logger.info(
+            "verification: no qualifying match; newest started %s, need >= %s",
+            newest_seen, threshold,
+        )
+    else:
+        logger.info("verification: no parseable matches returned for %s", puuid)
     return None

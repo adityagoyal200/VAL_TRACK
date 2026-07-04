@@ -32,8 +32,10 @@ class RiotAccountLink(TimeStampedModel):
     region = models.CharField(max_length=8, blank=True)  # detected by account lookup
     account_level = models.IntegerField(null=True, blank=True)
     current_tier = models.CharField(max_length=16, choices=Tier.choices, blank=True)
+    current_division = models.PositiveSmallIntegerField(null=True, blank=True)  # 1-3
     current_rr = models.IntegerField(null=True, blank=True)  # 0-100 within tier
     peak_tier = models.CharField(max_length=16, choices=Tier.choices, blank=True)
+    peak_division = models.PositiveSmallIntegerField(null=True, blank=True)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
     verification_window_start = models.DateTimeField(null=True, blank=True)
     verification_window_end = models.DateTimeField(null=True, blank=True)

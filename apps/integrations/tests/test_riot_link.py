@@ -158,18 +158,47 @@ class TestVerificationTask:
     def test_window_elapsed_expires(self, db, mock_provider):
         user = User.objects.create_user(email="b@example.com", username="b")
         now = timezone.now()
+        # Past the window AND the propagation grace period -> expired.
         link = RiotAccountLink.objects.create(
             user=user,
             riot_game_name="Bob",
             riot_tag_line="EUW",
             puuid="puuid-2",
             region="eu",
-            verification_window_start=now - timedelta(minutes=15),
-            verification_window_end=now - timedelta(minutes=5),
+            verification_window_start=now - timedelta(minutes=30),
+            verification_window_end=now - timedelta(minutes=20),
         )
         assert poll_riot_verification(link.pk) == "expired"
         link.refresh_from_db()
         assert link.status == RiotAccountLink.Status.EXPIRED
+
+    def test_keeps_polling_during_grace_then_verifies(self, db, mock_provider):
+        """A match ingested a few minutes after the window closes still verifies,
+        because polling continues through the propagation grace period."""
+        from celery.exceptions import Retry
+
+        user = User.objects.create_user(email="c@example.com", username="c")
+        now = timezone.now()
+        link = RiotAccountLink.objects.create(
+            user=user,
+            riot_game_name="Cid",
+            riot_tag_line="EUW",
+            puuid="puuid-3",
+            region="eu",
+            verification_window_start=now - timedelta(minutes=12),
+            verification_window_end=now - timedelta(minutes=2),  # closed, but within grace
+        )
+        # Match not ingested yet -> still polling, not expired.
+        with pytest.raises(Retry):
+            poll_riot_verification(link.pk)
+        link.refresh_from_db()
+        assert link.status == RiotAccountLink.Status.PENDING
+
+        # Match lands during grace -> verifies.
+        mock_provider.match_id = "late-match"
+        assert poll_riot_verification(link.pk) == "verified"
+        link.refresh_from_db()
+        assert link.status == RiotAccountLink.Status.VERIFIED
 
 
 class TestManualReview:
