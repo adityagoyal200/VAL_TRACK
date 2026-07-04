@@ -14,6 +14,8 @@ import { Label } from '@/components/ui/label'
 import { Chip } from '@/components/chip'
 import { getProfile, putRoleTags, putSchedule, updateProfileBasics } from '@/api/profile'
 import { unlinkProvider } from '@/api/auth'
+import { getRiotLinkStatus } from '@/api/riotLink'
+import { rankLabel } from '@/schemas/riotLink.schema'
 import {
   COMM_PREFERENCES,
   DAYS,
@@ -36,6 +38,7 @@ export function ProfileSettingsPage() {
   const { user, refreshUser } = useAuth()
   const queryClient = useQueryClient()
   const profileQuery = useQuery({ queryKey: ['profile'], queryFn: getProfile })
+  const riotQuery = useQuery({ queryKey: ['riotLink'], queryFn: getRiotLinkStatus })
 
   const [region, setRegion] = useState('')
   const [language, setLanguage] = useState('')
@@ -176,6 +179,48 @@ export function ProfileSettingsPage() {
                 )}
               </div>
             ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Riot account</CardTitle>
+            <CardDescription>
+              Verified rank builds trust with teammates and unlocks rank-matched
+              listings.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between gap-4">
+            {(() => {
+              const link = riotQuery.data
+              const status = link?.status ?? 'none'
+              if (status === 'verified') {
+                return (
+                  <div className="text-sm">
+                    <span className="font-medium">
+                      {link!.riot_game_name}#{link!.riot_tag_line}
+                    </span>
+                    <span className="ml-2 text-emerald-500">Verified</span>
+                    <div className="text-muted-foreground">
+                      {rankLabel(link!.current_tier, link!.current_division)}
+                      {link!.current_rr != null && ` · ${link!.current_rr} RR`}
+                    </div>
+                  </div>
+                )
+              }
+              const text =
+                status === 'pending'
+                  ? 'Verification in progress'
+                  : status === 'manual_review'
+                    ? 'Screenshot under review'
+                    : status === 'expired' || status === 'rejected'
+                      ? 'Verification incomplete'
+                      : 'Not linked yet'
+              return <span className="text-sm text-muted-foreground">{text}</span>
+            })()}
+            <Button variant="outline" size="sm" render={<Link to="/riot-link" />}>
+              {riotQuery.data?.status === 'verified' ? 'Manage' : 'Link account'}
+            </Button>
           </CardContent>
         </Card>
 

@@ -5,6 +5,7 @@ import { DiscordCallbackPage } from '@/features/auth/DiscordCallbackPage'
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute'
 import { OnboardingWizard } from '@/features/onboarding/OnboardingWizard'
 import { ProfileSettingsPage } from '@/features/profile/ProfileSettingsPage'
+import { RiotLinkPage } from '@/features/riot/RiotLinkPage'
 import { LiveQueuePage } from '@/features/queue/LiveQueuePage'
 
 export function AppRouter() {
@@ -17,6 +18,7 @@ export function AppRouter() {
         <Route path="/onboarding" element={<OnboardingWizard />} />
         <Route path="/queue" element={<LiveQueuePage />} />
         <Route path="/settings" element={<ProfileSettingsPage />} />
+        <Route path="/riot-link" element={<RiotLinkPage />} />
       </Route>
       <Route path="/" element={<Navigate to="/login" replace />} />
     </Routes>
