@@ -1,0 +1,226 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+@import "@fontsource/chakra-petch/500.css";
+@import "@fontsource/chakra-petch/600.css";
+@import "@fontsource/chakra-petch/700.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: 'Chakra Petch', sans-serif;
+    --font-sans: 'Geist Variable', sans-serif;
+    --color-cyan: var(--cyan);
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Valorant tactical: dark-only. Same palette on :root and .dark so shadcn's
+   dark:* variants render correctly while tokens apply with or without the class. */
+:root,
+.dark {
+    --background: oklch(0.165 0.008 265);
+    --foreground: oklch(0.96 0.004 260);
+    --card: oklch(0.205 0.009 265);
+    --card-foreground: oklch(0.96 0.004 260);
+    --popover: oklch(0.225 0.01 265);
+    --popover-foreground: oklch(0.96 0.004 260);
+    --primary: oklch(0.645 0.235 18);           /* Valorant red #FF4655 */
+    --primary-foreground: oklch(0.99 0 0);
+    --secondary: oklch(0.26 0.01 265);
+    --secondary-foreground: oklch(0.96 0.004 260);
+    --muted: oklch(0.26 0.01 265);
+    --muted-foreground: oklch(0.66 0.012 258);
+    --accent: oklch(0.3 0.012 265);
+    --accent-foreground: oklch(0.98 0.004 260);
+    --destructive: oklch(0.62 0.21 25);
+    --border: oklch(1 0 0 / 9%);
+    --input: oklch(1 0 0 / 12%);
+    --ring: oklch(0.645 0.235 18);
+    --cyan: oklch(0.84 0.14 180);               /* #00E5C0 */
+    --chart-1: oklch(0.645 0.235 18);
+    --chart-2: oklch(0.84 0.14 180);
+    --chart-3: oklch(0.72 0.16 45);
+    --chart-4: oklch(0.6 0.18 300);
+    --chart-5: oklch(0.66 0.012 258);
+    --radius: 0.25rem;
+    --sidebar: oklch(0.205 0.009 265);
+    --sidebar-foreground: oklch(0.96 0.004 260);
+    --sidebar-primary: oklch(0.645 0.235 18);
+    --sidebar-primary-foreground: oklch(0.99 0 0);
+    --sidebar-accent: oklch(0.3 0.012 265);
+    --sidebar-accent-foreground: oklch(0.98 0.004 260);
+    --sidebar-border: oklch(1 0 0 / 9%);
+    --sidebar-ring: oklch(0.645 0.235 18);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* Ambient tactical glows: red top-right, cyan bottom-left, fixed. */
+    background-image:
+      radial-gradient(55rem 55rem at 108% -12%, oklch(0.645 0.235 18 / 0.12), transparent 60%),
+      radial-gradient(48rem 48rem at -12% 112%, oklch(0.84 0.14 180 / 0.08), transparent 60%);
+    background-attachment: fixed;
+  }
+  html {
+    @apply font-sans;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: oklch(0.645 0.235 18 / 0.35);
+  }
+  /* Slim tactical scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(1 0 0 / 14%) transparent;
+  }
+}
+
+@layer utilities {
+  /* Faint HUD grid — drop onto any section for tactical texture. */
+  .tactical-grid {
+    background-image:
+      linear-gradient(oklch(1 0 0 / 3.5%) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(1 0 0 / 3.5%) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+  /* Clipped/beveled corners — the signature Valorant card shape. */
+  .clip-bevel {
+    clip-path: polygon(
+      0 0,
+      calc(100% - 14px) 0,
+      100% 14px,
+      100% 100%,
+      14px 100%,
+      0 calc(100% - 14px)
+    );
+  }
+  .clip-bevel-sm {
+    clip-path: polygon(
+      0 0,
+      calc(100% - 8px) 0,
+      100% 8px,
+      100% 100%,
+      8px 100%,
+      0 calc(100% - 8px)
+    );
+  }
+  .glow-red {
+    box-shadow:
+      0 0 0 1px oklch(0.645 0.235 18 / 0.35),
+      0 10px 44px -10px oklch(0.645 0.235 18 / 0.5);
+  }
+  .text-glow-red {
+    text-shadow: 0 0 26px oklch(0.645 0.235 18 / 0.5);
+  }
+  .glow-cyan {
+    box-shadow: 0 0 24px -4px oklch(0.84 0.14 180 / 0.5);
+  }
+  /* Diagonal sheen for hero surfaces. */
+  .tactical-sheen {
+    background-image: linear-gradient(
+      135deg,
+      oklch(1 0 0 / 4%) 0%,
+      transparent 32%,
+      transparent 68%,
+      oklch(0.645 0.235 18 / 6%) 100%
+    );
+  }
+
+  /* Deterministic entrance — visible even if JS never runs (fill: both). */
+  .animate-rise {
+    animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .animate-drift {
+    animation: drift 22s ease-in-out infinite alternate;
+  }
+  .animate-drift-slow {
+    animation: drift 30s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(4%, -6%, 0) scale(1.12);
+  }
+}
+
+@keyframes scan {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(1200%);
+  }
+}
+
+/* Hide the native cursor only where a custom one runs (fine pointer + JS). */
+@media (hover: hover) and (pointer: fine) {
+  html.custom-cursor,
+  html.custom-cursor * {
+    cursor: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-drift,
+  .animate-drift-slow {
+    animation: none;
+  }
+}
