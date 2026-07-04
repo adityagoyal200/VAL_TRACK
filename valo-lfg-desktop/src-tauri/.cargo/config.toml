@@ -1,0 +1,4 @@
+# GNU toolchain on this machine is MSVCRT-based; force Rust's self-contained
+# CRT/link libs so it doesn't try to link the external UCRT mingw libs.
+[target.x86_64-pc-windows-gnu]
+rustflags = ["-C", "link-self-contained=yes"]

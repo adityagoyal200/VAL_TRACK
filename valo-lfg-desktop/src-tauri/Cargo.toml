@@ -1,0 +1,29 @@
+[package]
+name = "valo-lfg-desktop"
+version = "0.1.0"
+description = "A Tauri App"
+authors = ["you"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix keeps the lib name distinct from the bin.
+# Desktop-only: keep just the rlib. The cdylib/staticlib crate-types are for
+# mobile and overflow GNU ld's export table ("export ordinal too large").
+name = "valo_lfg_desktop_lib"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+riot-core = { path = "riot-core" }
+
+[workspace]
+members = ["riot-core"]
+

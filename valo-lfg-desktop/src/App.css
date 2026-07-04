@@ -1,0 +1,213 @@
+/* Valorant Tactical — desktop tracker. Deliberately cheap: no WebGL, no
+   animations beyond one pulse dot, so the app never costs FPS in-game. */
+
+:root {
+  --bg: #0a0c10;
+  --panel: #11141b;
+  --border: #232834;
+  --fg: #e8eaf0;
+  --dim: #8b91a0;
+  --red: #ff4655;
+  --cyan: #00e5c0;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background:
+    linear-gradient(rgba(255, 70, 85, 0.03), transparent 40%),
+    repeating-linear-gradient(0deg, transparent 0 31px, rgba(255, 255, 255, 0.025) 31px 32px),
+    repeating-linear-gradient(90deg, transparent 0 31px, rgba(255, 255, 255, 0.025) 31px 32px),
+    var(--bg);
+  color: var(--fg);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  user-select: none;
+  overflow: hidden;
+}
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100vh;
+  padding: 14px;
+}
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+
+.wordmark {
+  font-family: "Chakra Petch", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+}
+
+.wordmark-accent {
+  color: var(--red);
+}
+
+.topbar-label {
+  margin-left: auto;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--dim);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--red);
+  padding: 14px 16px;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+
+.panel.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  flex: 1;
+  text-align: center;
+}
+
+.panel.rank {
+  border-left-color: var(--tier, var(--cyan));
+}
+
+.label {
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--dim);
+  margin-bottom: 6px;
+}
+
+.riot-id {
+  font-family: "Chakra Petch", "Segoe UI", sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.tag {
+  color: var(--dim);
+  font-size: 15px;
+  margin-left: 2px;
+}
+
+.tier-name {
+  font-family: "Chakra Petch", "Segoe UI", sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--tier, var(--cyan));
+  text-shadow: 0 0 18px color-mix(in srgb, var(--tier, var(--cyan)) 35%, transparent);
+}
+
+.dim {
+  color: var(--dim);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.status-title {
+  font-family: "Chakra Petch", "Segoe UI", sans-serif;
+  letter-spacing: 0.15em;
+  color: var(--red);
+}
+
+.rr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.rr-track {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  clip-path: polygon(0 0, calc(100% - 3px) 0, 100% 100%, 3px 100%);
+}
+
+.rr-fill {
+  height: 100%;
+  background: var(--tier, var(--cyan));
+}
+
+.rr-num {
+  font-family: "Chakra Petch", "Segoe UI", sans-serif;
+  font-size: 13px;
+  min-width: 48px;
+  text-align: right;
+}
+
+.footbar {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.footbar .btn {
+  margin-left: auto;
+}
+
+.pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cyan);
+  animation: pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.btn {
+  background: var(--red);
+  color: #fff;
+  border: none;
+  font-family: "Chakra Petch", "Segoe UI", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  padding: 7px 16px;
+  cursor: pointer;
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+}
+
+.btn:hover {
+  filter: brightness(1.12);
+}
+
+.btn.ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--dim);
+  clip-path: none;
+}
+
+.btn.ghost:hover {
+  color: var(--fg);
+  border-color: var(--dim);
+  filter: none;
+}
