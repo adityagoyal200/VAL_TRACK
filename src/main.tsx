@@ -6,6 +6,7 @@ import { AppRouter } from './app/router'
 import { GrainOverlay } from './components/grain-overlay'
 import { CrosshairCursor } from './components/crosshair-cursor'
 import { BootIntro } from './components/boot-intro'
+import { Toaster } from './components/toaster'
 
 // Code-split the WebGL backdrop (three.js) out of the critical path.
 const TacticalBackground = lazy(() =>
@@ -26,6 +27,7 @@ createRoot(document.getElementById('root')!).render(
       <GrainOverlay />
       <CrosshairCursor />
       <BootIntro />
+      <Toaster />
     </AppProviders>
   </StrictMode>,
 )

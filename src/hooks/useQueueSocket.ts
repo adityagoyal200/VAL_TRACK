@@ -1,9 +1,39 @@
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { getAccessToken, refreshAccessToken } from '@/lib/api'
+import { pushToast, type ToastInput } from '@/lib/toast'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 const WS_BASE = API_BASE.replace(/^http/, 'ws')
+
+// The backend targets these events, so the recipient is always the right one:
+// only the host gets received/withdrawn, only the requester gets accepted/declined.
+const REQUEST_TOASTS: Record<string, ToastInput> = {
+  'request.received': {
+    kind: 'warn',
+    icon: 'user-plus',
+    title: 'New join request',
+    description: 'Someone wants in on your party — check My Parties.',
+  },
+  'request.accepted': {
+    kind: 'success',
+    icon: 'check',
+    title: "You're in!",
+    description: 'The host accepted your request to join.',
+  },
+  'request.declined': {
+    kind: 'muted',
+    icon: 'x',
+    title: 'Request declined',
+    description: 'The host passed on your request this time.',
+  },
+  'request.withdrawn': {
+    kind: 'muted',
+    icon: 'user-minus',
+    title: 'Request withdrawn',
+    description: 'A player pulled their request to join.',
+  },
+}
 
 /**
  * Keeps a live-queue websocket open while `enabled`, and turns server pushes
@@ -46,6 +76,8 @@ export function useQueueSocket(enabled: boolean) {
           // A join request arrived / was resolved: refresh feed + both my-tabs.
           queryClient.invalidateQueries({ queryKey: ['listings'] })
           queryClient.invalidateQueries({ queryKey: ['join-requests'] })
+          const toast = REQUEST_TOASTS[msg.type]
+          if (toast) pushToast(toast)
         }
       }
 
