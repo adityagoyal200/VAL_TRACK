@@ -34,6 +34,8 @@ INSTALLED_APPS = [
     "apps.accounts",
     "apps.profiles",
     "apps.integrations",
+    "apps.matchmaking",
+    "apps.realtime",
 ]
 
 MIDDLEWARE = [
@@ -75,7 +77,9 @@ REDIS_URL = env("REDIS_URL", default="redis://localhost:6379/0")
 
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        # Pub/sub backend: the core RedisChannelLayer's blocking BRPOP receive
+        # crashes idle consumers with a redis read-timeout on redis-py >= 5.
+        "BACKEND": "channels_redis.pubsub.RedisPubSubChannelLayer",
         "CONFIG": {"hosts": [REDIS_URL]},
     },
 }
