@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "apps.integrations",
     "apps.matchmaking",
     "apps.realtime",
+    "apps.tracker",
 ]
 
 MIDDLEWARE = [

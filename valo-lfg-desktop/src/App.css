@@ -211,3 +211,339 @@ body {
   border-color: var(--dim);
   filter: none;
 }
+
+/* ---- Roster ---- */
+
+.roster {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 2px;
+}
+
+.team-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+}
+
+.row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--tier, var(--border));
+  color: var(--fg);
+  text-align: left;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.row.clickable {
+  cursor: pointer;
+}
+
+.row.clickable:hover {
+  border-color: var(--tier, var(--dim));
+  background: #151922;
+}
+
+.row.me {
+  background: #16131a;
+  border-left-color: var(--red);
+}
+
+.row:disabled {
+  cursor: default;
+}
+
+.agent-cell {
+  flex-shrink: 0;
+}
+
+.agent-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  background: #0d1016;
+  object-fit: cover;
+  display: block;
+}
+
+.agent-img.placeholder {
+  border: 1px dashed var(--border);
+}
+
+.who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.who-name {
+  font-family: "Chakra Petch", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.who-sub {
+  font-size: 11px;
+  margin: 0;
+}
+
+.you-badge {
+  margin-left: 6px;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  background: var(--red);
+  color: #fff;
+  padding: 1px 5px;
+  align-self: center;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+  min-width: 62px;
+}
+
+.form-wl {
+  font-family: "Chakra Petch", "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.form-wr {
+  font-size: 10px;
+}
+
+.rank-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+  min-width: 96px;
+}
+
+.rank-name {
+  font-family: "Chakra Petch", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--tier, var(--dim));
+}
+
+.rank-rr {
+  font-size: 11px;
+}
+
+.rank-peak {
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+
+/* ---- Loadout modal ---- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 6, 9, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 10;
+}
+
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--red);
+  width: 100%;
+  max-width: 520px;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-body {
+  overflow-y: auto;
+  padding: 14px 16px;
+}
+
+.modal-body .label {
+  margin-bottom: 8px;
+}
+
+/* Recent-match rows */
+
+.matches {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.match {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: #0d1016;
+  border-left: 3px solid var(--dim);
+}
+
+.match.win {
+  border-left-color: var(--cyan);
+}
+
+.match.loss {
+  border-left-color: var(--red);
+}
+
+.match-res {
+  font-family: "Chakra Petch", "Segoe UI", sans-serif;
+  font-weight: 700;
+  width: 14px;
+  text-align: center;
+}
+
+.match.win .match-res {
+  color: var(--cyan);
+}
+
+.match.loss .match-res {
+  color: var(--red);
+}
+
+.match-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.match-agent {
+  font-family: "Chakra Petch", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.match-meta {
+  font-size: 10px;
+}
+
+.match-score {
+  font-family: "Chakra Petch", "Segoe UI", sans-serif;
+  font-size: 12px;
+  min-width: 40px;
+  text-align: right;
+}
+
+.match-kda {
+  font-family: "Chakra Petch", "Segoe UI", sans-serif;
+  font-size: 13px;
+  min-width: 68px;
+  text-align: right;
+}
+
+.skins {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.skin {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #0d1016;
+  border: 1px solid var(--border);
+  padding: 8px;
+}
+
+.skin-img {
+  width: 100%;
+  height: 46px;
+  object-fit: contain;
+}
+
+.skin-img.placeholder {
+  background: repeating-linear-gradient(45deg, #12151c 0 6px, #0d1016 6px 12px);
+}
+
+.skin-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.skin-weapon {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.skin-name {
+  font-family: "Chakra Petch", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* --- skin collection sync ------------------------------------------------ */
+
+.sync-row {
+  display: flex;
+  gap: 8px;
+}
+
+.sync-input {
+  flex: 1;
+  background: #0d1016;
+  border: 1px solid var(--border);
+  color: inherit;
+  font-family: "Chakra Petch", "Segoe UI", sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  padding: 8px 10px;
+  text-transform: uppercase;
+  outline: none;
+}
+
+.sync-input:focus {
+  border-color: #00e5c0;
+}
+
+.sync-ok {
+  margin-top: 10px;
+  color: #00e5c0;
+  font-size: 13px;
+}
+
+.sync-err {
+  margin-top: 10px;
+  color: #ff4655;
+  font-size: 13px;
+}

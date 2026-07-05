@@ -7,6 +7,7 @@ import { OnboardingWizard } from '@/features/onboarding/OnboardingWizard'
 import { ProfileSettingsPage } from '@/features/profile/ProfileSettingsPage'
 import { RiotLinkPage } from '@/features/riot/RiotLinkPage'
 import { LiveQueuePage } from '@/features/queue/LiveQueuePage'
+import { TrackerPage, PublicTrackerPage } from '@/features/tracker/TrackerPage'
 
 export function AppRouter() {
   return (
@@ -17,6 +18,8 @@ export function AppRouter() {
       <Route element={<ProtectedRoute />}>
         <Route path="/onboarding" element={<OnboardingWizard />} />
         <Route path="/queue" element={<LiveQueuePage />} />
+        <Route path="/tracker" element={<TrackerPage />} />
+        <Route path="/tracker/:name/:tag" element={<PublicTrackerPage />} />
         <Route path="/settings" element={<ProfileSettingsPage />} />
         <Route path="/riot-link" element={<RiotLinkPage />} />
       </Route>
