@@ -39,6 +39,7 @@ class MatchPlayerSerializer(serializers.Serializer):
     defuses = serializers.IntegerField()
     weapons = serializers.JSONField()
     is_subject = serializers.BooleanField()
+    party_id = serializers.CharField()
     rating = serializers.SerializerMethodField()
 
     def get_rating(self, obj) -> float | None:
@@ -275,6 +276,47 @@ class SquadSerializer(serializers.Serializer):
     teammates = TeammateSerializer(many=True)
     nemeses = DuelistSerializer(many=True)
     victims = DuelistSerializer(many=True)
+
+
+class EncounteredPlayerSerializer(serializers.Serializer):
+    puuid = serializers.CharField()
+    name = serializers.CharField()
+    tag = serializers.CharField()
+    agent_image = serializers.CharField()
+    games = serializers.IntegerField()
+    wins = serializers.IntegerField()
+    losses = serializers.IntegerField()
+    win_rate = serializers.FloatField()
+    last_seen = serializers.CharField(allow_blank=True)
+    acts = serializers.ListField(child=serializers.CharField(), source="act_list")
+
+
+class PartyGroupSerializer(serializers.Serializer):
+    puuids = serializers.ListField(child=serializers.CharField())
+    names = serializers.JSONField()
+    size = serializers.IntegerField()
+    side = serializers.CharField()
+    label = serializers.CharField()
+    games = serializers.IntegerField()
+    last_seen = serializers.CharField(allow_blank=True)
+    acts = serializers.ListField(child=serializers.CharField(), source="act_list")
+
+
+class EncountersSerializer(serializers.Serializer):
+    matches_analysed = serializers.IntegerField()
+    opponents = EncounteredPlayerSerializer(many=True)
+    teammates = EncounteredPlayerSerializer(many=True)
+    enemy_parties = PartyGroupSerializer(many=True)
+    ally_parties = PartyGroupSerializer(many=True)
+
+
+class EncounterBackfillJobSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    status = serializers.CharField()
+    total = serializers.IntegerField()
+    done = serializers.IntegerField()
+    ingested = serializers.IntegerField()
+    error = serializers.CharField(allow_blank=True)
 
 
 class ProfileHeaderSerializer(serializers.Serializer):

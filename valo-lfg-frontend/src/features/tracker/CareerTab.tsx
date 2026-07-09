@@ -35,12 +35,10 @@ export function CareerTab({ mode, subject = null }: { mode: string; subject?: Tr
     if (!career.data) return []
     return [career.data.all, ...career.data.acts]
   }, [career.data])
-  // Default to the current (newest) act so its score shows immediately; the
-  // "All acts" lifetime bucket is one click away.
+  // Default to the "All acts" lifetime bucket — the overall Tracker Score —
+  // with per-act splits one click away.
   const [act, setAct] = useState<string | null>(null)
-  const currentAct = career.data?.acts[0]?.act
-  const active =
-    buckets.find((b) => b.act === (act ?? currentAct)) ?? buckets[0]
+  const active = buckets.find((b) => b.act === (act ?? 'all')) ?? buckets[0]
 
   if (career.isLoading) {
     return (

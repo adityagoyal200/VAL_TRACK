@@ -15,9 +15,11 @@ from rest_framework.views import APIView
 
 from apps.integrations.models import RiotAccountLink
 from apps.integrations.services import henrikdev_client as riot
-from apps.tracker.models import SkinCollection
+from apps.tracker.models import EncounterBackfillJob, SkinCollection
 from apps.tracker.serializers import (
     CareerSerializer,
+    EncounterBackfillJobSerializer,
+    EncountersSerializer,
     MMRHistoryEntrySerializer,
     MatchDetailSerializer,
     MatchSummarySerializer,
@@ -27,11 +29,15 @@ from apps.tracker.serializers import (
 )
 from apps.tracker.services.aggregate import build_overview
 from apps.tracker.services.career import build_career
+from apps.tracker.services.encounters import build_encounters
+from apps.tracker.services.ingest import ingest_match, ingest_matches
 from apps.tracker.services.squad import build_squad
+from apps.tracker.tasks import backfill_encounter_history
 
 OVERVIEW_SAMPLE = 20  # matches aggregated for the top-line stats
 RECENT_ON_OVERVIEW = 5
 SQUAD_SAMPLE = 20  # detailed matches scanned for party / duo / duel analysis
+CAREER_MAX_PAGES = 50  # full lifetime history, not just the last 500 games
 
 
 @dataclass
@@ -46,6 +52,15 @@ class Subject:
 def _provider_error_response(exc: riot.ProviderError) -> Response:
     code = status.HTTP_404_NOT_FOUND if exc.not_found else status.HTTP_502_BAD_GATEWAY
     return Response({"detail": str(exc)}, status=code)
+
+
+def _ingest_quiet(fn, *args) -> None:
+    """Persisting rosters for the encounters feature is opportunistic — never
+    let a DB hiccup break an otherwise-successful tracker response."""
+    try:
+        fn(*args)
+    except Exception:
+        pass
 
 
 def _self_subject(request) -> Subject | None:
@@ -168,6 +183,7 @@ class _OverviewPayload:
     def payload(self, request, subject, **kwargs):
         mode = request.query_params.get("mode", "competitive") or None
         matches = riot.get_matches(subject.region, subject.puuid, mode=mode, size=OVERVIEW_SAMPLE)
+        _ingest_quiet(ingest_matches, matches)
         rr_history = riot.get_mmr_history(subject.region, subject.puuid)
         overview = build_overview(matches)
         return {
@@ -188,6 +204,7 @@ class _MatchesPayload:
         except ValueError:
             size = 10
         matches = riot.get_matches(subject.region, subject.puuid, mode=mode, size=size)
+        _ingest_quiet(ingest_matches, matches)
         return {"matches": MatchSummarySerializer(matches, many=True).data}
 
 
@@ -200,6 +217,7 @@ class _MatchDetailPayload:
         match = next((m for m in recent if m.match_id == match_id), None)
         if match is None:
             match = riot.get_match(subject.region, match_id, subject.puuid)
+        _ingest_quiet(ingest_match, match)
         return MatchDetailSerializer(match).data
 
 
@@ -210,7 +228,8 @@ class _CareerPayload:
     def payload(self, request, subject, **kwargs):
         mode = request.query_params.get("mode", "competitive") or None
         stored = riot.get_stored_matches(
-            subject.region, subject.game_name, subject.tag_line, mode=mode
+            subject.region, subject.game_name, subject.tag_line,
+            mode=mode, max_pages=CAREER_MAX_PAGES,
         )
         acts, lifetime = build_career(stored)
         return CareerSerializer({"acts": acts, "all": lifetime}).data
@@ -223,8 +242,19 @@ class _SquadPayload:
     def payload(self, request, subject, **kwargs):
         mode = request.query_params.get("mode", "competitive") or None
         matches = riot.get_matches(subject.region, subject.puuid, mode=mode, size=SQUAD_SAMPLE)
+        _ingest_quiet(ingest_matches, matches)
         squad = build_squad(matches, subject.puuid)
         return SquadSerializer(squad).data
+
+
+class _EncountersPayload:
+    """Lifetime encounter/premade history from whatever has been persisted to
+    `EncounterMatch`/`EncounterPlayer` so far — the recent window ingested for
+    free on every view, plus anything the full-history backfill has pulled."""
+
+    def payload(self, request, subject, **kwargs):
+        encounters = build_encounters(subject.puuid)
+        return EncountersSerializer(encounters).data
 
 
 class TrackerOverviewView(_OverviewPayload, _SelfTrackerView):
@@ -247,6 +277,10 @@ class TrackerSquadView(_SquadPayload, _SelfTrackerView):
     pass
 
 
+class TrackerEncountersView(_EncountersPayload, _SelfTrackerView):
+    pass
+
+
 class PublicOverviewView(_OverviewPayload, _PublicTrackerView):
     pass
 
@@ -265,6 +299,64 @@ class PublicCareerView(_CareerPayload, _PublicTrackerView):
 
 class PublicSquadView(_SquadPayload, _PublicTrackerView):
     pass
+
+
+class PublicEncountersView(_EncountersPayload, _PublicTrackerView):
+    pass
+
+
+# ---------------------------------------------------------------------------
+# Encounter history backfill: a one-time job (self only — it burns a chunk of
+# the personal HenrikDev key's rate-limit budget) that walks every act on
+# record and persists full rosters so Encounters covers a real lifetime, not
+# just the recent detailed-match window.
+# ---------------------------------------------------------------------------
+
+
+class EncountersBackfillView(APIView):
+    """POST -> enqueue (or return the already-running/most-recent) backfill
+    job for the caller's linked account."""
+
+    def post(self, request):
+        subject = _self_subject(request)
+        if subject is None:
+            return _NO_LINK
+
+        existing = (
+            EncounterBackfillJob.objects.filter(
+                region=subject.region, name=subject.game_name, tag=subject.tag_line
+            )
+            .exclude(status=EncounterBackfillJob.Status.FAILED)
+            .first()
+        )
+        if existing and existing.status in (
+            EncounterBackfillJob.Status.PENDING,
+            EncounterBackfillJob.Status.RUNNING,
+        ):
+            return Response(EncounterBackfillJobSerializer(existing).data)
+
+        job = EncounterBackfillJob.objects.create(
+            region=subject.region, name=subject.game_name, tag=subject.tag_line
+        )
+        backfill_encounter_history.delay(job.id)
+        return Response(EncounterBackfillJobSerializer(job).data, status=status.HTTP_202_ACCEPTED)
+
+
+class EncountersBackfillStatusView(APIView):
+    """GET -> the most recent backfill job for the caller's linked account."""
+
+    def get(self, request):
+        subject = _self_subject(request)
+        if subject is None:
+            return _NO_LINK
+
+        job = EncounterBackfillJob.objects.filter(
+            region=subject.region, name=subject.game_name, tag=subject.tag_line
+        ).first()
+        # DRF's JSONRenderer emits an empty body (not the JSON literal `null`)
+        # for `Response(None)`, which breaks a plain `resp.json()` on the
+        # frontend — so wrap in an object instead of returning bare null.
+        return Response({"job": EncounterBackfillJobSerializer(job).data if job else None})
 
 
 # ---------------------------------------------------------------------------

@@ -191,6 +191,7 @@ export interface MatchPlayer {
   defuses: number
   weapons: WeaponKills[]
   is_subject: boolean
+  party_id: string
   rating: number | null
 }
 
@@ -309,6 +310,53 @@ export interface Squad {
   victims: Duelist[]
 }
 
+export interface EncounteredPlayer {
+  puuid: string
+  name: string
+  tag: string
+  agent_image: string
+  games: number
+  wins: number
+  losses: number
+  win_rate: number
+  last_seen: string
+  acts: string[]
+}
+
+export interface PartyGroupMember {
+  name: string
+  tag: string
+  agent_image: string
+}
+
+export interface PartyGroup {
+  puuids: string[]
+  names: PartyGroupMember[]
+  size: number
+  side: 'ally' | 'enemy'
+  label: string
+  games: number
+  last_seen: string
+  acts: string[]
+}
+
+export interface Encounters {
+  matches_analysed: number
+  opponents: EncounteredPlayer[]
+  teammates: EncounteredPlayer[]
+  enemy_parties: PartyGroup[]
+  ally_parties: PartyGroup[]
+}
+
+export interface EncounterBackfillJob {
+  id: number
+  status: 'pending' | 'running' | 'done' | 'failed'
+  total: number
+  done: number
+  ingested: number
+  error: string
+}
+
 export interface SkinCollection {
   skin_levels: string[]
   updated_at: string | null
@@ -349,6 +397,22 @@ export function getCareer(subject: TrackerSubject, mode = 'competitive') {
 
 export function getSquad(subject: TrackerSubject, mode = 'competitive') {
   return apiFetch<Squad>(`${subjectBase(subject)}/squad/?mode=${encodeURIComponent(mode)}`)
+}
+
+export function getEncounters(subject: TrackerSubject) {
+  return apiFetch<Encounters>(`${subjectBase(subject)}/encounters/`)
+}
+
+/** Self only — kicks off (or returns the in-flight) full-history backfill. */
+export function startEncountersBackfill() {
+  return apiFetch<EncounterBackfillJob>('/api/tracker/me/encounters/backfill/', { method: 'POST' })
+}
+
+export async function getEncountersBackfillStatus() {
+  const { job } = await apiFetch<{ job: EncounterBackfillJob | null }>(
+    '/api/tracker/me/encounters/backfill/status/',
+  )
+  return job
 }
 
 export function getSkins() {

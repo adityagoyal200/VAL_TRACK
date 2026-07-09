@@ -1,6 +1,6 @@
 // Shared tracker formatting helpers.
 
-import type { TrackerSubject } from '@/api/tracker'
+import type { MatchPlayer, TrackerSubject } from '@/api/tracker'
 
 /** Stable react-query cache key for a subject ("me" or "name#tag"). */
 export function subjectKey(subject: TrackerSubject): string {
@@ -136,4 +136,32 @@ export function ratingTier(value: number | null | undefined): RatingTier {
 /** One-decimal rating text, or "—" when unrated. */
 export function ratingLabel(value: number | null | undefined): string {
   return value == null ? '—' : value.toFixed(1)
+}
+
+/** "Duo" / "Trio" / "4-Stack" / "5-Stack" label for a premade party size. */
+export function partySizeLabel(size: number): string {
+  if (size === 2) return 'Duo'
+  if (size === 3) return 'Trio'
+  if (size >= 4) return `${size}-Stack`
+  return ''
+}
+
+const PARTY_COLORS = ['#e7c15a', '#43bdcf', '#c77dff', '#28c47e', '#ff9f5a']
+
+/** Maps each `party_id` shared by 2+ of `players` to a stable badge color,
+ * assigned per team in scoreboard order so colors don't clash on one team. */
+export function partyColorsFor(players: MatchPlayer[]): Map<string, string> {
+  const counts = new Map<string, number>()
+  for (const p of players) {
+    if (!p.party_id) continue
+    counts.set(p.party_id, (counts.get(p.party_id) ?? 0) + 1)
+  }
+  const colors = new Map<string, string>()
+  let i = 0
+  for (const [partyId, count] of counts) {
+    if (count < 2) continue
+    colors.set(partyId, PARTY_COLORS[i % PARTY_COLORS.length])
+    i += 1
+  }
+  return colors
 }

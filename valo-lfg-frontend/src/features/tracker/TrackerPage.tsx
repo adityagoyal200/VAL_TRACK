@@ -18,8 +18,10 @@ import { Wordmark } from '@/components/wordmark'
 import { ApiError } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import {
+  getCareer,
   getMatches,
   getOverview,
+  type ActStat,
   type AgentStat,
   type MapStat,
   type MatchSummary,
@@ -32,6 +34,7 @@ import { fetchRankIcons, rankIconKey } from '@/api/valorantAssets'
 import { AccuracyFigure } from './AccuracyFigure'
 import { CareerTab } from './CareerTab'
 import { CollectionTab } from './CollectionTab'
+import { EncountersTab } from './EncountersTab'
 import { MatchDetailDialog } from './MatchDetailDialog'
 import { RatingBadge, RatingSparkline, ScoreLegend } from './RatingBadge'
 import { RRChart } from './RRChart'
@@ -73,6 +76,7 @@ const TABS = [
   { id: 'arsenal', label: 'Arsenal' },
   { id: 'career', label: 'Acts' },
   { id: 'squad', label: 'Squad' },
+  { id: 'encounters', label: 'Encounters' },
   { id: 'collection', label: 'Collection' },
 ] as const
 type TabId = (typeof TABS)[number]['id']
@@ -122,6 +126,12 @@ export function TrackerPage({ subject = null }: { subject?: TrackerSubject } = {
   const matches = useQuery({
     queryKey: ['tracker', 'matches', sk, mode || 'all'],
     queryFn: () => getMatches(subject, { mode: mode || undefined, size: 20 }),
+  })
+  // Same query key CareerTab uses — shares its cache, so switching to the
+  // Acts tab later is instant instead of re-fetching the full history walk.
+  const career = useQuery({
+    queryKey: ['tracker', 'career', sk, mode || 'all'],
+    queryFn: () => getCareer(subject, mode),
   })
 
   const handleLogout = async () => {
@@ -195,7 +205,11 @@ export function TrackerPage({ subject = null }: { subject?: TrackerSubject } = {
 
       {overview.data && (
         <>
-          <ProfileHero profile={overview.data.profile} stats={overview.data.stats} />
+          <ProfileHero
+            profile={overview.data.profile}
+            stats={overview.data.stats}
+            lifetime={career.data?.all}
+          />
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
             <nav className="flex flex-wrap gap-1 border-b border-border">
@@ -213,7 +227,7 @@ export function TrackerPage({ subject = null }: { subject?: TrackerSubject } = {
                 </button>
               ))}
             </nav>
-            {tab !== 'collection' && (
+            {tab !== 'collection' && tab !== 'encounters' && (
               <div className="flex flex-wrap gap-2">
                 {MODES.map((m) => (
                   <Chip key={m.value} selected={mode === m.value} onClick={() => setMode(m.value)}>
@@ -255,6 +269,7 @@ export function TrackerPage({ subject = null }: { subject?: TrackerSubject } = {
             {tab === 'arsenal' && <ArsenalTab weapons={overview.data.stats.top_weapons} />}
             {tab === 'career' && <CareerTab mode={mode} subject={subject} />}
             {tab === 'squad' && <SquadTab mode={mode} subject={subject} />}
+            {tab === 'encounters' && <EncountersTab subject={subject} />}
             {tab === 'collection' && !isPublic && <CollectionTab />}
           </div>
         </>
@@ -277,7 +292,15 @@ export function TrackerPage({ subject = null }: { subject?: TrackerSubject } = {
 // Hero
 // ---------------------------------------------------------------------------
 
-function ProfileHero({ profile, stats }: { profile: ProfileHeader; stats: OverviewStats }) {
+function ProfileHero({
+  profile,
+  stats,
+  lifetime,
+}: {
+  profile: ProfileHeader
+  stats: OverviewStats
+  lifetime?: ActStat
+}) {
   const icons = useRankIcons()
   const streak = stats.current_streak
   const currentKey = rankIconKey(profile.current_tier, profile.current_division)
@@ -328,7 +351,13 @@ function ProfileHero({ profile, stats }: { profile: ProfileHeader; stats: Overvi
           </div>
 
           <div className="ml-auto flex items-center gap-6">
-            <TrackerScore rating={stats.avg_rating} form={stats.rating_form} games={stats.matches_counted} />
+            <TrackerScore
+              rating={stats.avg_rating}
+              form={stats.rating_form}
+              games={stats.matches_counted}
+              lifetimeRating={lifetime?.avg_rating ?? null}
+              lifetimeGames={lifetime?.matches ?? 0}
+            />
             <RankBadge
               label="Current"
               icon={icons?.byName[currentKey]?.large}
@@ -424,44 +453,83 @@ function RankBadge({
   )
 }
 
-/** Hero headline: the 0–10 performance rating, its grade, and a form sparkline. */
+/** Hero headline: the 0–10 performance rating, its grade, a form sparkline,
+ * and — once the full-history career pull lands — the lifetime score next
+ * to it, so "recent form" and "overall" are never confused for each other. */
 function TrackerScore({
   rating,
   form,
   games,
+  lifetimeRating,
+  lifetimeGames,
 }: {
   rating: number | null
   form: number[]
   games: number
+  lifetimeRating: number | null
+  lifetimeGames: number
 }) {
   const { grade, color, ink, label } = ratingTier(rating)
+  const lifetimeTier = ratingTier(lifetimeRating)
   return (
-    <div className="flex flex-col items-end">
-      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Tracker Score</div>
-      <div className="mt-0.5 flex items-baseline gap-1">
-        <span className="font-heading text-4xl leading-none font-bold tabular-nums" style={{ color }}>
-          {ratingLabel(rating)}
-        </span>
-        <span className="text-sm font-medium text-muted-foreground">/10</span>
-      </div>
-      {rating != null && (
-        <span
-          className="mt-1.5 inline-flex items-center gap-1 rounded-[3px] px-2 py-0.5 text-xs font-bold shadow-sm"
-          style={{ color: ink, backgroundColor: color }}
-        >
-          <span>{grade}</span>
-          <span className="opacity-80">·</span>
-          <span className="uppercase tracking-wide">{label}</span>
-        </span>
-      )}
-      {form.length >= 2 ? (
-        <div className="mt-1.5 flex items-center gap-1.5 text-muted-foreground">
-          <RatingSparkline values={form} width={104} height={26} />
-          <span className="text-[10px] text-muted-foreground">last {form.length}</span>
+    <div className="flex items-end gap-5">
+      {lifetimeGames > 0 && (
+        <div className="flex flex-col items-end border-r border-border/60 pr-5">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            Overall Score
+          </div>
+          <div className="mt-0.5 flex items-baseline gap-1">
+            <span
+              className="font-heading text-3xl leading-none font-bold tabular-nums"
+              style={{ color: lifetimeTier.color }}
+            >
+              {ratingLabel(lifetimeRating)}
+            </span>
+            <span className="text-xs font-medium text-muted-foreground">/10</span>
+          </div>
+          {lifetimeRating != null && (
+            <span
+              className="mt-1.5 inline-flex items-center gap-1 rounded-[3px] px-2 py-0.5 text-xs font-bold shadow-sm"
+              style={{ color: lifetimeTier.ink, backgroundColor: lifetimeTier.color }}
+            >
+              <span>{lifetimeTier.grade}</span>
+            </span>
+          )}
+          <div className="mt-1.5 text-[10px] text-muted-foreground">
+            {lifetimeGames.toLocaleString()} games lifetime
+          </div>
         </div>
-      ) : (
-        <div className="mt-1 text-[11px] text-muted-foreground">{games} games</div>
       )}
+
+      <div className="flex flex-col items-end">
+        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+          Recent Form
+        </div>
+        <div className="mt-0.5 flex items-baseline gap-1">
+          <span className="font-heading text-4xl leading-none font-bold tabular-nums" style={{ color }}>
+            {ratingLabel(rating)}
+          </span>
+          <span className="text-sm font-medium text-muted-foreground">/10</span>
+        </div>
+        {rating != null && (
+          <span
+            className="mt-1.5 inline-flex items-center gap-1 rounded-[3px] px-2 py-0.5 text-xs font-bold shadow-sm"
+            style={{ color: ink, backgroundColor: color }}
+          >
+            <span>{grade}</span>
+            <span className="opacity-80">·</span>
+            <span className="uppercase tracking-wide">{label}</span>
+          </span>
+        )}
+        {form.length >= 2 ? (
+          <div className="mt-1.5 flex items-center gap-1.5 text-muted-foreground">
+            <RatingSparkline values={form} width={104} height={26} />
+            <span className="text-[10px] text-muted-foreground">last {form.length}</span>
+          </div>
+        ) : (
+          <div className="mt-1 text-[11px] text-muted-foreground">{games} games</div>
+        )}
+      </div>
     </div>
   )
 }

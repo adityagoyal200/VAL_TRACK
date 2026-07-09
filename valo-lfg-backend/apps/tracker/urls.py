@@ -12,6 +12,17 @@ urlpatterns = [
     ),
     path("tracker/me/career/", views.TrackerCareerView.as_view(), name="tracker-career"),
     path("tracker/me/squad/", views.TrackerSquadView.as_view(), name="tracker-squad"),
+    path("tracker/me/encounters/", views.TrackerEncountersView.as_view(), name="tracker-encounters"),
+    path(
+        "tracker/me/encounters/backfill/",
+        views.EncountersBackfillView.as_view(),
+        name="tracker-encounters-backfill",
+    ),
+    path(
+        "tracker/me/encounters/backfill/status/",
+        views.EncountersBackfillStatusView.as_view(),
+        name="tracker-encounters-backfill-status",
+    ),
     path("tracker/me/skins/", views.MySkinsView.as_view(), name="tracker-my-skins"),
     path(
         "tracker/collection/code/",
@@ -49,5 +60,10 @@ urlpatterns = [
         "tracker/<str:name>/<str:tag>/squad/",
         views.PublicSquadView.as_view(),
         name="tracker-public-squad",
+    ),
+    path(
+        "tracker/<str:name>/<str:tag>/encounters/",
+        views.PublicEncountersView.as_view(),
+        name="tracker-public-encounters",
     ),
 ]

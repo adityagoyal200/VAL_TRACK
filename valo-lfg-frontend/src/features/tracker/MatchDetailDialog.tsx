@@ -11,6 +11,8 @@ import {
   formatDateTime,
   formatDuration,
   outcome,
+  partyColorsFor,
+  partySizeLabel,
   subjectKey,
   tierColor,
   timeAgo,
@@ -161,6 +163,12 @@ function Scoreboard({
         const rows = match.players
           .filter((p) => p.team_id === team.team_id)
           .sort((a, b) => b.acs - a.acs)
+        const partyColors = partyColorsFor(rows)
+        const partySizes = new Map<string, number>()
+        for (const p of rows) {
+          if (!p.party_id) continue
+          partySizes.set(p.party_id, (partySizes.get(p.party_id) ?? 0) + 1)
+        }
         const result = outcome(team.won)
         return (
           <div key={team.team_id} className="border-t border-border first:border-t-0">
@@ -215,6 +223,8 @@ function Scoreboard({
                       key={p.puuid || `${p.name}${p.tag}`}
                       p={p}
                       onOpenPlayer={onOpenPlayer}
+                      partyColor={p.party_id ? partyColors.get(p.party_id) : undefined}
+                      partySize={p.party_id ? partySizes.get(p.party_id) ?? 0 : 0}
                       rankIcon={
                         p.tier_name
                           ? rankIcons?.byName[p.tier_name.toLowerCase()]?.small
@@ -235,10 +245,14 @@ function Scoreboard({
 function PlayerRow({
   p,
   rankIcon,
+  partyColor,
+  partySize = 0,
   onOpenPlayer,
 }: {
   p: MatchPlayer
   rankIcon?: string
+  partyColor?: string
+  partySize?: number
   onOpenPlayer: (name: string, tag: string) => void
 }) {
   const delta = p.dd_delta
@@ -260,6 +274,13 @@ function PlayerRow({
           )}
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
+              {partyColor && (
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: partyColor }}
+                  aria-hidden
+                />
+              )}
               <span
                 className={`truncate group-enabled:group-hover:underline ${
                   p.is_subject ? 'font-semibold text-cyan' : ''
@@ -268,6 +289,14 @@ function PlayerRow({
                 {p.name}
               </span>
               <span className="text-xs text-muted-foreground">#{p.tag}</span>
+              {partyColor && (
+                <span
+                  className="rounded-sm px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
+                  style={{ backgroundColor: `${partyColor}26`, color: partyColor }}
+                >
+                  {partySizeLabel(partySize)}
+                </span>
+              )}
             </div>
             {p.tier_name && (
               <span className="flex items-center gap-1 text-[11px]" style={{ color: tierColor(p.tier_name) }}>
