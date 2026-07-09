@@ -170,12 +170,15 @@ function Scoreboard({
           partySizes.set(p.party_id, (partySizes.get(p.party_id) ?? 0) + 1)
         }
         const result = outcome(team.won)
+        const teamColor = result === 'win' ? WIN_COLOR : result === 'loss' ? LOSS_COLOR : '#8a94a3'
         return (
           <div key={team.team_id} className="border-t border-border first:border-t-0">
             <div
-              className="flex items-center justify-between px-5 py-1.5 text-xs font-semibold tracking-wide"
+              className="flex items-center justify-between border-l-2 px-5 py-1.5 text-xs font-semibold tracking-wide"
               style={{
-                color: result === 'win' ? WIN_COLOR : result === 'loss' ? LOSS_COLOR : undefined,
+                color: teamColor,
+                borderLeftColor: teamColor,
+                background: `linear-gradient(90deg, ${teamColor}14, transparent 60%)`,
               }}
             >
               <span>
@@ -258,7 +261,10 @@ function PlayerRow({
   const delta = p.dd_delta
   const canOpen = !!(p.name && p.tag)
   return (
-    <tr className={`border-t border-border/40 ${p.is_subject ? 'bg-cyan/5' : ''}`}>
+    <tr
+      className={`border-t border-border/40 transition-colors ${p.is_subject ? 'bg-cyan/[0.07]' : 'hover:bg-white/[0.02]'}`}
+      style={p.is_subject ? { boxShadow: 'inset 2px 0 0 0 #00e5c0' } : undefined}
+    >
       <td className="px-5 py-2">
         <button
           type="button"

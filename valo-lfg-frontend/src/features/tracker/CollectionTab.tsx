@@ -77,7 +77,12 @@ export function CollectionTab() {
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <span className="font-heading text-lg font-bold tabular-nums">{owned.length}</span>{' '}
+              <span
+                className="font-heading text-2xl font-bold tabular-nums"
+                style={{ color: '#e7c15a', textShadow: '0 0 22px #e7c15a4d' }}
+              >
+                {owned.length}
+              </span>{' '}
               <span className="text-sm text-muted-foreground">
                 skins owned
                 {skins.data?.updated_at ? ` · synced ${timeAgo(skins.data.updated_at)}` : ''}
@@ -86,7 +91,7 @@ export function CollectionTab() {
             <SyncPanel />
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="clip-bevel-sm mt-4 flex flex-wrap items-center gap-2 border border-border/70 bg-card/40 p-2">
             <div className="relative">
               <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
@@ -118,8 +123,12 @@ export function CollectionTab() {
               return (
                 <div
                   key={s.skinId}
-                  className="clip-bevel-sm group relative border border-border bg-card p-3 transition-colors hover:border-muted-foreground/40"
-                  style={{ boxShadow: tier ? `inset 0 2px 0 0 ${tier.color}` : undefined }}
+                  className="clip-bevel-sm group relative overflow-hidden border border-border bg-gradient-to-b from-card to-background/40 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/25"
+                  style={{
+                    boxShadow: tier
+                      ? `inset 0 2px 0 0 ${tier.color}, 0 10px 24px -12px ${tier.color}66`
+                      : undefined,
+                  }}
                 >
                   <div className="flex h-20 items-center justify-center">
                     {s.image ? (
@@ -190,8 +199,15 @@ function SyncPanel({ firstTime = false }: { firstTime?: boolean }) {
   }
 
   return (
-    <div className="clip-bevel tactical-grid border border-border bg-card p-8 text-center">
-      <MonitorDown className="mx-auto h-8 w-8 text-cyan" />
+    <div className="clip-bevel tactical-grid relative overflow-hidden border border-border bg-gradient-to-br from-card to-card/60 p-8 text-center">
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-px"
+        style={{ background: 'linear-gradient(90deg, transparent 10%, #00e5c0 40%, #00e5c0 60%, transparent 90%)' }}
+        aria-hidden
+      />
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-sm border border-cyan/40 bg-cyan/10">
+        <MonitorDown className="h-7 w-7 text-cyan" />
+      </div>
       <p className="mt-3 font-heading text-lg font-semibold">Show off your collection</p>
       <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
         Skin ownership only lives inside the Riot client, so the Valo LFG desktop app reads it

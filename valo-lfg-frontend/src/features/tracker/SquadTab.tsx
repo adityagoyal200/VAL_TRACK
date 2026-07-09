@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Loader2, Skull, Swords, Users } from 'lucide-react'
+import { Loader2, Skull, Swords, UsersRound } from 'lucide-react'
 import {
   getSquad,
   type Duelist,
@@ -10,6 +10,7 @@ import {
   type TrackerSubject,
 } from '@/api/tracker'
 import { LOSS_COLOR, WIN_COLOR, subjectKey } from './lib'
+import { Panel, RankNumber, SectionHeader, type Accent } from './ui'
 
 /**
  * Party & rivalry analysis over the recent detailed-match window (the only
@@ -62,16 +63,18 @@ export function SquadTab({ mode, subject = null }: { mode: string; subject?: Tra
         <DuelList
           title="NEMESES"
           subtitle="killed you the most"
-          icon={<Skull className="h-4 w-4 text-primary" />}
+          icon={<Skull className="h-3.5 w-3.5" />}
           duelists={s.nemeses}
           highlight="deaths"
+          accent="red"
         />
         <DuelList
           title="FAVOURITE VICTIMS"
           subtitle="you killed the most"
-          icon={<Swords className="h-4 w-4 text-cyan" />}
+          icon={<Swords className="h-3.5 w-3.5" />}
           duelists={s.victims}
           highlight="kills"
+          accent="cyan"
         />
       </div>
 
@@ -88,11 +91,8 @@ function SoloVsStacked({ solo, stacked }: { solo: number; stacked: number }) {
     { label: 'Stacked (2+)', value: stacked },
   ]
   return (
-    <section className="clip-bevel border border-border bg-card p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <Users className="h-4 w-4 text-cyan" />
-        <h2 className="font-heading text-sm font-semibold tracking-wide">SOLO VS STACKED</h2>
-      </div>
+    <Panel accent="cyan">
+      <SectionHeader icon={<UsersRound className="h-3.5 w-3.5" />} title="SOLO VS STACKED" accent="cyan" />
       <div className="space-y-3">
         {rows.map((r) => (
           <div key={r.label}>
@@ -107,22 +107,26 @@ function SoloVsStacked({ solo, stacked }: { solo: number; stacked: number }) {
             </div>
             <div className="mt-1 h-1.5 bg-muted">
               <div
-                className="h-full"
-                style={{ width: `${r.value}%`, backgroundColor: r.value >= 50 ? WIN_COLOR : LOSS_COLOR }}
+                className="h-full transition-all"
+                style={{
+                  width: `${r.value}%`,
+                  backgroundColor: r.value >= 50 ? WIN_COLOR : LOSS_COLOR,
+                  boxShadow: `0 0 10px -1px ${r.value >= 50 ? WIN_COLOR : LOSS_COLOR}`,
+                }}
               />
             </div>
           </div>
         ))}
       </div>
-    </section>
+    </Panel>
   )
 }
 
 function PartyBreakdown({ sizes }: { sizes: PartySizeStat[] }) {
   const maxGames = Math.max(...sizes.map((p) => p.games), 1)
   return (
-    <section className="clip-bevel border border-border bg-card p-4">
-      <h2 className="mb-3 font-heading text-sm font-semibold tracking-wide">PARTY SIZE</h2>
+    <Panel accent="violet">
+      <SectionHeader icon={<UsersRound className="h-3.5 w-3.5" />} title="PARTY SIZE" accent="violet" />
       {sizes.length === 0 && <p className="text-sm text-muted-foreground">No data.</p>}
       <div className="space-y-2.5">
         {sizes.map((p) => (
@@ -147,20 +151,21 @@ function PartyBreakdown({ sizes }: { sizes: PartySizeStat[] }) {
           </div>
         ))}
       </div>
-    </section>
+    </Panel>
   )
 }
 
 function Teammates({ mates }: { mates: Teammate[] }) {
   if (mates.length === 0) return null
   return (
-    <section className="clip-bevel border border-border bg-card p-4">
-      <h2 className="mb-3 font-heading text-sm font-semibold tracking-wide">MOST PLAYED WITH</h2>
+    <Panel accent="cyan">
+      <SectionHeader icon={<UsersRound className="h-3.5 w-3.5" />} title="MOST PLAYED WITH" accent="cyan" />
       <div className="grid gap-2.5 sm:grid-cols-2">
-        {mates.map((t) => (
-          <div key={t.puuid} className="flex items-center gap-3">
+        {mates.map((t, i) => (
+          <div key={t.puuid} className="group -mx-1 flex items-center gap-3 rounded-sm px-1 py-0.5 transition-colors hover:bg-white/5">
+            <RankNumber n={i + 1} />
             {t.agent_image ? (
-              <img src={t.agent_image} alt="" aria-hidden className="h-9 w-9 rounded-sm" loading="lazy" />
+              <img src={t.agent_image} alt="" aria-hidden className="h-9 w-9 rounded-sm ring-1 ring-white/10" loading="lazy" />
             ) : (
               <div className="h-9 w-9 rounded-sm bg-muted" />
             )}
@@ -180,7 +185,7 @@ function Teammates({ mates }: { mates: Teammate[] }) {
           </div>
         ))}
       </div>
-    </section>
+    </Panel>
   )
 }
 
@@ -190,28 +195,27 @@ function DuelList({
   icon,
   duelists,
   highlight,
+  accent,
 }: {
   title: string
   subtitle: string
   icon: ReactNode
   duelists: Duelist[]
   highlight: 'kills' | 'deaths'
+  accent: Accent
 }) {
   return (
-    <section className="clip-bevel border border-border bg-card p-4">
-      <div className="mb-3 flex items-center gap-2">
-        {icon}
-        <h2 className="font-heading text-sm font-semibold tracking-wide">{title}</h2>
-        <span className="text-xs text-muted-foreground">· {subtitle}</span>
-      </div>
+    <Panel accent={accent}>
+      <SectionHeader icon={icon} title={title} kicker={subtitle} accent={accent} />
       {duelists.length === 0 && (
         <p className="text-sm text-muted-foreground">No recurring rivals in this sample.</p>
       )}
       <div className="space-y-2.5">
-        {duelists.map((d) => (
-          <div key={d.puuid} className="flex items-center gap-3">
+        {duelists.map((d, i) => (
+          <div key={d.puuid} className="group -mx-1 flex items-center gap-3 rounded-sm px-1 py-0.5 transition-colors hover:bg-white/5">
+            <RankNumber n={i + 1} />
             {d.agent_image ? (
-              <img src={d.agent_image} alt="" aria-hidden className="h-9 w-9 rounded-sm" loading="lazy" />
+              <img src={d.agent_image} alt="" aria-hidden className="h-9 w-9 rounded-sm ring-1 ring-white/10" loading="lazy" />
             ) : (
               <div className="h-9 w-9 rounded-sm bg-muted" />
             )}
@@ -241,6 +245,6 @@ function DuelList({
           </div>
         ))}
       </div>
-    </section>
+    </Panel>
   )
 }

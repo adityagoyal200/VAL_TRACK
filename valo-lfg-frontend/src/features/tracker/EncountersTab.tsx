@@ -12,6 +12,7 @@ import {
 } from '@/api/tracker'
 import { Button } from '@/components/ui/button'
 import { LOSS_COLOR, WIN_COLOR, subjectKey, timeAgo } from './lib'
+import { Panel, RankNumber, SectionHeader } from './ui'
 
 /**
  * Lifetime encounter/premade history — every match persisted to the
@@ -57,15 +58,17 @@ export function EncountersTab({ subject = null }: { subject?: TrackerSubject }) 
             <PlayerList
               title="MOST FACED"
               subtitle="opponents you keep running into"
-              icon={<Swords className="h-4 w-4 text-primary" />}
+              icon={<Swords className="h-3.5 w-3.5" />}
               players={e.opponents}
               recordAgainst
+              accent="red"
             />
             <PlayerList
               title="MOST PLAYED WITH"
               subtitle="teammates across your whole history"
-              icon={<Users className="h-4 w-4 text-cyan" />}
+              icon={<Users className="h-3.5 w-3.5" />}
               players={e.teammates}
+              accent="cyan"
             />
           </div>
 
@@ -73,14 +76,16 @@ export function EncountersTab({ subject = null }: { subject?: TrackerSubject }) 
             <PartyList
               title="ENEMY PREMADES"
               subtitle="duos, trios & stacks you've faced"
-              icon={<Skull className="h-4 w-4 text-primary" />}
+              icon={<Skull className="h-3.5 w-3.5" />}
               groups={e.enemy_parties}
+              accent="red"
             />
             <PartyList
               title="YOUR PREMADES"
               subtitle="duos, trios & stacks on your own team"
-              icon={<Users className="h-4 w-4 text-cyan" />}
+              icon={<Users className="h-3.5 w-3.5" />}
               groups={e.ally_parties}
+              accent="cyan"
             />
           </div>
 
@@ -125,7 +130,7 @@ function BackfillPanel() {
   const onFailed = job?.status === 'failed'
 
   return (
-    <section className="clip-bevel border border-border bg-card p-4">
+    <Panel accent="cyan">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-heading text-sm font-semibold tracking-wide">FULL HISTORY SYNC</h2>
@@ -149,7 +154,10 @@ function BackfillPanel() {
             <span>{progress}%</span>
           </div>
           <div className="mt-1 h-1.5 bg-muted">
-            <div className="h-full bg-cyan transition-all" style={{ width: `${progress}%` }} />
+            <div
+              className="h-full bg-cyan transition-all"
+              style={{ width: `${progress}%`, boxShadow: '0 0 10px -1px #00e5c0' }}
+            />
           </div>
         </div>
       )}
@@ -157,7 +165,7 @@ function BackfillPanel() {
       {onFailed && (
         <p className="mt-2 text-xs text-primary">Sync failed: {job.error || 'unknown error'}</p>
       )}
-    </section>
+    </Panel>
   )
 }
 
@@ -167,28 +175,27 @@ function PlayerList({
   icon,
   players,
   recordAgainst,
+  accent = 'cyan',
 }: {
   title: string
   subtitle: string
   icon: ReactNode
   players: EncounteredPlayer[]
   recordAgainst?: boolean
+  accent?: 'red' | 'cyan'
 }) {
   return (
-    <section className="clip-bevel border border-border bg-card p-4">
-      <div className="mb-3 flex items-center gap-2">
-        {icon}
-        <h2 className="font-heading text-sm font-semibold tracking-wide">{title}</h2>
-        <span className="text-xs text-muted-foreground">· {subtitle}</span>
-      </div>
+    <Panel accent={accent}>
+      <SectionHeader icon={icon} title={title} kicker={subtitle} accent={accent} />
       {players.length === 0 && (
         <p className="text-sm text-muted-foreground">Nobody recurring yet in this sample.</p>
       )}
       <div className="space-y-2.5">
-        {players.map((p) => (
-          <div key={p.puuid} className="flex items-center gap-3">
+        {players.map((p, i) => (
+          <div key={p.puuid} className="group -mx-1 flex items-center gap-3 rounded-sm px-1 py-0.5 transition-colors hover:bg-white/5">
+            <RankNumber n={i + 1} />
             {p.agent_image ? (
-              <img src={p.agent_image} alt="" aria-hidden className="h-9 w-9 rounded-sm" loading="lazy" />
+              <img src={p.agent_image} alt="" aria-hidden className="h-9 w-9 rounded-sm ring-1 ring-white/10" loading="lazy" />
             ) : (
               <div className="h-9 w-9 rounded-sm bg-muted" />
             )}
@@ -217,7 +224,7 @@ function PlayerList({
           </div>
         ))}
       </div>
-    </section>
+    </Panel>
   )
 }
 
@@ -226,25 +233,27 @@ function PartyList({
   subtitle,
   icon,
   groups,
+  accent = 'cyan',
 }: {
   title: string
   subtitle: string
   icon: ReactNode
   groups: PartyGroup[]
+  accent?: 'red' | 'cyan'
 }) {
   return (
-    <section className="clip-bevel border border-border bg-card p-4">
-      <div className="mb-3 flex items-center gap-2">
-        {icon}
-        <h2 className="font-heading text-sm font-semibold tracking-wide">{title}</h2>
-        <span className="text-xs text-muted-foreground">· {subtitle}</span>
-      </div>
+    <Panel accent={accent}>
+      <SectionHeader icon={icon} title={title} kicker={subtitle} accent={accent} />
       {groups.length === 0 && (
         <p className="text-sm text-muted-foreground">No recurring premades spotted yet.</p>
       )}
       <div className="space-y-3">
         {groups.map((g) => (
-          <div key={g.puuids.join('+')} className="border-l-2 border-border/70 pl-3">
+          <div
+            key={g.puuids.join('+')}
+            className="border-l-2 pl-3 transition-colors"
+            style={{ borderColor: g.side === 'enemy' ? '#ff465555' : '#00e5c055' }}
+          >
             <div className="flex items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm font-medium">
                 {g.names.map((m, i) => (
@@ -275,6 +284,6 @@ function PartyList({
           </div>
         ))}
       </div>
-    </section>
+    </Panel>
   )
 }

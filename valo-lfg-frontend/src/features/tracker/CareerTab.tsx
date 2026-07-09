@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Loader2 } from 'lucide-react'
+import { Crosshair, Loader2, Map as MapIcon, Trophy, UsersRound } from 'lucide-react'
 import { Chip } from '@/components/chip'
 import {
   getCareer,
@@ -13,6 +13,7 @@ import { fetchRankIcons } from '@/api/valorantAssets'
 import { AccuracyFigure } from './AccuracyFigure'
 import { RatingBadge } from './RatingBadge'
 import { LOSS_COLOR, WIN_COLOR, subjectKey } from './lib'
+import { Panel, RankNumber, SectionHeader } from './ui'
 
 /**
  * Lifetime career: per-act splits over every stored match plus an aggregate
@@ -56,6 +57,7 @@ export function CareerTab({ mode, subject = null }: { mode: string; subject?: Tr
   }
 
   const peak = active.peak_tier ? icons?.byTier[active.peak_tier] : undefined
+  const isLifetime = active.act === 'all'
 
   return (
     <div className="animate-rise">
@@ -67,11 +69,12 @@ export function CareerTab({ mode, subject = null }: { mode: string; subject?: Tr
         ))}
       </div>
 
-      <section className="clip-bevel mt-4 border border-border bg-card p-4">
+      <Panel accent={isLifetime ? 'gold' : 'cyan'} className="mt-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-              {active.act === 'all' ? 'Lifetime' : active.label || active.act.toUpperCase()}
+            <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+              {isLifetime && <Trophy className="h-3 w-3" style={{ color: '#e7c15a' }} />}
+              {isLifetime ? 'Lifetime' : active.label || active.act.toUpperCase()}
             </div>
             <div className="mt-1 flex items-baseline gap-2">
               <span
@@ -89,14 +92,14 @@ export function CareerTab({ mode, subject = null }: { mode: string; subject?: Tr
           <div className="flex items-center gap-6">
             <div className="text-right">
               <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                Tracker Score
+                {isLifetime ? 'Overall Score' : 'Tracker Score'}
               </div>
               <div className="mt-1 flex justify-end">
                 <RatingBadge value={active.avg_rating} size="md" showGrade />
               </div>
             </div>
             {peak && (
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 border-l border-border/60 pl-6">
                 <img src={peak.large} alt="" aria-hidden className="h-12 w-12 drop-shadow" />
                 <div className="text-right">
                   <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -119,7 +122,7 @@ export function CareerTab({ mode, subject = null }: { mode: string; subject?: Tr
           <CareerStat label="Kills" value={active.kills.toLocaleString()} />
           <CareerStat label="Assists" value={active.assists.toLocaleString()} />
         </div>
-      </section>
+      </Panel>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <AccuracyCard act={active} />
@@ -132,20 +135,20 @@ export function CareerTab({ mode, subject = null }: { mode: string; subject?: Tr
 
 function AccuracyCard({ act }: { act: ActStat }) {
   return (
-    <section className="clip-bevel border border-border bg-card p-4">
-      <h2 className="mb-3 font-heading text-sm font-semibold tracking-wide">HIT LOCATIONS</h2>
+    <Panel accent="cyan">
+      <SectionHeader icon={<Crosshair className="h-3.5 w-3.5" />} title="HIT LOCATIONS" accent="cyan" />
       <AccuracyFigure head={act.hs_percent} body={act.body_percent} legs={act.leg_percent} />
       <p className="mt-3 text-xs text-muted-foreground">
         {act.head.toLocaleString()} heads · {act.body.toLocaleString()} bodies ·{' '}
         {act.leg.toLocaleString()} legs
       </p>
-    </section>
+    </Panel>
   )
 }
 
 function CareerStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="clip-bevel-sm border border-border/70 bg-background/40 p-2.5">
+    <div className="clip-bevel-sm border border-border/70 bg-background/40 p-2.5 transition-colors hover:border-white/20">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="mt-0.5 font-heading text-lg font-bold tabular-nums">{value}</div>
     </div>
@@ -154,14 +157,15 @@ function CareerStat({ label, value }: { label: string; value: string }) {
 
 function CareerAgents({ agents }: { agents: CareerAgent[] }) {
   return (
-    <section className="clip-bevel border border-border bg-card p-4">
-      <h2 className="mb-3 font-heading text-sm font-semibold tracking-wide">TOP AGENTS</h2>
+    <Panel accent="violet">
+      <SectionHeader icon={<UsersRound className="h-3.5 w-3.5" />} title="TOP AGENTS" accent="violet" />
       {agents.length === 0 && <p className="text-sm text-muted-foreground">No agent data.</p>}
       <div className="space-y-2.5">
-        {agents.map((a) => (
-          <div key={a.agent} className="flex items-center gap-3">
+        {agents.map((a, i) => (
+          <div key={a.agent} className="group -mx-1 flex items-center gap-3 rounded-sm px-1 py-0.5 transition-colors hover:bg-white/5">
+            <RankNumber n={i + 1} />
             {a.agent_image ? (
-              <img src={a.agent_image} alt={a.agent} className="h-9 w-9 rounded-sm" loading="lazy" />
+              <img src={a.agent_image} alt={a.agent} className="h-9 w-9 rounded-sm ring-1 ring-white/10" loading="lazy" />
             ) : (
               <div className="h-9 w-9 rounded-sm bg-muted" />
             )}
@@ -180,24 +184,25 @@ function CareerAgents({ agents }: { agents: CareerAgent[] }) {
           </div>
         ))}
       </div>
-    </section>
+    </Panel>
   )
 }
 
 function CareerMaps({ maps }: { maps: CareerMap[] }) {
   return (
-    <section className="clip-bevel border border-border bg-card p-4">
-      <h2 className="mb-3 font-heading text-sm font-semibold tracking-wide">MAP PERFORMANCE</h2>
+    <Panel accent="gold">
+      <SectionHeader icon={<MapIcon className="h-3.5 w-3.5" />} title="MAP PERFORMANCE" accent="gold" />
       {maps.length === 0 && <p className="text-sm text-muted-foreground">No map data.</p>}
       <div className="space-y-2.5">
-        {maps.map((m) => (
-          <div key={m.map_name} className="flex items-center gap-3">
+        {maps.map((m, i) => (
+          <div key={m.map_name} className="group -mx-1 flex items-center gap-3 rounded-sm px-1 py-0.5 transition-colors hover:bg-white/5">
+            <RankNumber n={i + 1} />
             {m.map_image ? (
               <img
                 src={m.map_image}
                 alt=""
                 aria-hidden
-                className="clip-bevel-sm h-9 w-14 shrink-0 object-cover"
+                className="clip-bevel-sm h-9 w-14 shrink-0 object-cover ring-1 ring-white/10"
                 loading="lazy"
               />
             ) : (
@@ -218,6 +223,6 @@ function CareerMaps({ maps }: { maps: CareerMap[] }) {
           </div>
         ))}
       </div>
-    </section>
+    </Panel>
   )
 }

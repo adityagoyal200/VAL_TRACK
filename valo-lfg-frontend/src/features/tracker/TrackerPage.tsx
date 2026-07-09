@@ -3,14 +3,21 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   ArrowLeft,
+  CalendarRange,
   Crosshair,
   Flame,
+  Gauge,
+  ListVideo,
   Loader2,
+  Map as MapIcon,
+  Radar,
   Radio,
   Search,
   Settings,
+  Shirt,
   Swords,
   TrendingUp,
+  UsersRound,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Chip } from '@/components/chip'
@@ -39,6 +46,7 @@ import { MatchDetailDialog } from './MatchDetailDialog'
 import { RatingBadge, RatingSparkline, ScoreLegend } from './RatingBadge'
 import { RRChart } from './RRChart'
 import { SquadTab } from './SquadTab'
+import { Panel, RankNumber, SectionHeader, StatTile } from './ui'
 import {
   LOSS_COLOR,
   WIN_COLOR,
@@ -69,15 +77,15 @@ const MODES = [
 ] as const
 
 const TABS = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'matches', label: 'Matches' },
-  { id: 'agents', label: 'Agents' },
-  { id: 'maps', label: 'Maps' },
-  { id: 'arsenal', label: 'Arsenal' },
-  { id: 'career', label: 'Acts' },
-  { id: 'squad', label: 'Squad' },
-  { id: 'encounters', label: 'Encounters' },
-  { id: 'collection', label: 'Collection' },
+  { id: 'overview', label: 'Overview', icon: Gauge },
+  { id: 'matches', label: 'Matches', icon: ListVideo },
+  { id: 'agents', label: 'Agents', icon: UsersRound },
+  { id: 'maps', label: 'Maps', icon: MapIcon },
+  { id: 'arsenal', label: 'Arsenal', icon: Crosshair },
+  { id: 'career', label: 'Acts', icon: CalendarRange },
+  { id: 'squad', label: 'Squad', icon: UsersRound },
+  { id: 'encounters', label: 'Encounters', icon: Radar },
+  { id: 'collection', label: 'Collection', icon: Shirt },
 ] as const
 type TabId = (typeof TABS)[number]['id']
 
@@ -212,20 +220,25 @@ export function TrackerPage({ subject = null }: { subject?: TrackerSubject } = {
           />
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-            <nav className="flex flex-wrap gap-1 border-b border-border">
-              {tabs.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={`-mb-px border-b-2 px-3 py-2 font-heading text-sm font-semibold tracking-wide uppercase transition-colors ${
-                    tab === t.id
-                      ? 'border-primary text-foreground'
-                      : 'border-transparent text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
+            <nav className="clip-bevel-sm flex flex-wrap gap-1 border border-border/70 bg-card/40 p-1">
+              {tabs.map((t) => {
+                const Icon = t.icon
+                const active = tab === t.id
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setTab(t.id)}
+                    className={`relative flex items-center gap-1.5 rounded-sm px-3 py-1.5 font-heading text-xs font-semibold tracking-wide uppercase transition-all duration-200 ${
+                      active
+                        ? 'bg-primary text-primary-foreground shadow-[0_0_18px_-2px_oklch(0.645_0.235_18_/_0.55)]'
+                        : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {t.label}
+                  </button>
+                )
+              })}
             </nav>
             {tab !== 'collection' && tab !== 'encounters' && (
               <div className="flex flex-wrap gap-2">
@@ -558,18 +571,12 @@ function OverviewTab({
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <section className="clip-bevel border border-border bg-card p-4 lg:col-span-2">
-          <div className="mb-3 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-cyan" />
-            <h2 className="font-heading text-sm font-semibold tracking-wide">RANK RATING</h2>
-          </div>
+        <Panel accent="cyan" className="lg:col-span-2">
+          <SectionHeader icon={<TrendingUp className="h-3.5 w-3.5" />} title="RANK RATING" accent="cyan" />
           <RRChart history={rrHistory} />
-        </section>
-        <section className="clip-bevel border border-border bg-card p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <Crosshair className="h-4 w-4 text-cyan" />
-            <h2 className="font-heading text-sm font-semibold tracking-wide">HIT LOCATIONS</h2>
-          </div>
+        </Panel>
+        <Panel accent="cyan">
+          <SectionHeader icon={<Crosshair className="h-3.5 w-3.5" />} title="HIT LOCATIONS" accent="cyan" />
           <AccuracyFigure
             head={stats.hs_shot_percent}
             body={stats.body_percent}
@@ -579,7 +586,7 @@ function OverviewTab({
             {stats.headshots.toLocaleString()} heads · {stats.bodyshots.toLocaleString()} bodies ·{' '}
             {stats.legshots.toLocaleString()} legs
           </p>
-        </section>
+        </Panel>
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
@@ -591,8 +598,8 @@ function OverviewTab({
       <TopMaps maps={stats.top_maps} />
 
       <section className="mt-6">
-        <h2 className="font-heading text-sm font-semibold tracking-wide">RECENT MATCHES</h2>
-        <div className="mt-3 space-y-2">
+        <SectionHeader icon={<ListVideo className="h-3.5 w-3.5" />} title="RECENT MATCHES" accent="red" />
+        <div className="space-y-2">
           {recent.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">
               No matches found for this mode.
@@ -650,15 +657,7 @@ function StatRow({ stats }: { stats: OverviewStats }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       {tiles.map((t) => (
-        <div key={t.label} className="clip-bevel-sm border border-border bg-card p-3.5">
-          <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{t.label}</div>
-          <div className="mt-1 font-heading text-2xl font-bold tabular-nums" style={{ color: t.accent }}>
-            {t.value}
-          </div>
-          <div className="mt-0.5 truncate text-xs text-muted-foreground" title={t.sub}>
-            {t.sub}
-          </div>
-        </div>
+        <StatTile key={t.label} label={t.label} value={t.value} sub={t.sub} accent={t.accent} />
       ))}
     </div>
   )
@@ -674,27 +673,31 @@ function BestMatchCard({
   return (
     <button
       onClick={() => best.match_id && onOpen(best.match_id)}
-      className="clip-bevel group relative overflow-hidden border border-border bg-card p-4 text-left transition-colors hover:border-muted-foreground/40"
+      className="clip-bevel group relative overflow-hidden border border-border bg-gradient-to-br from-card to-card/60 p-4 text-left transition-all duration-200 hover:border-[#e7c15a]/50"
     >
       {best.map_image && (
         <img
           src={best.map_image}
           alt=""
           aria-hidden
-          className="absolute inset-0 h-full w-full object-cover opacity-25 transition-opacity group-hover:opacity-35"
+          className="absolute inset-0 h-full w-full object-cover opacity-25 transition-opacity duration-300 group-hover:opacity-40"
         />
       )}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-px"
+        style={{ background: 'linear-gradient(90deg, transparent 4%, #e7c15a 40%, #e7c15a 60%, transparent 96%)' }}
+        aria-hidden
+      />
       <div className="relative">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Swords className="h-4 w-4 text-cyan" />
-            <h2 className="font-heading text-sm font-semibold tracking-wide">BEST GAME</h2>
-          </div>
-          <RatingBadge value={best.rating} showGrade />
-        </div>
-        <div className="mt-3 flex items-center gap-3">
+        <SectionHeader
+          icon={<Swords className="h-3.5 w-3.5" />}
+          title="BEST GAME"
+          accent="gold"
+          right={<RatingBadge value={best.rating} showGrade />}
+        />
+        <div className="flex items-center gap-3">
           {best.agent_image && (
-            <img src={best.agent_image} alt={best.agent} className="h-12 w-12 rounded-sm" />
+            <img src={best.agent_image} alt={best.agent} className="h-12 w-12 rounded-sm ring-1 ring-white/10" />
           )}
           <div>
             <div className="font-heading text-2xl font-bold tabular-nums">{best.acs} ACS</div>
@@ -717,14 +720,15 @@ function BestMatchCard({
 
 function TopAgents({ agents }: { agents: AgentStat[] }) {
   return (
-    <section className="clip-bevel border border-border bg-card p-4">
-      <h2 className="mb-3 font-heading text-sm font-semibold tracking-wide">TOP AGENTS</h2>
+    <Panel accent="violet">
+      <SectionHeader icon={<UsersRound className="h-3.5 w-3.5" />} title="TOP AGENTS" accent="violet" />
       {agents.length === 0 && <p className="text-sm text-muted-foreground">No data yet.</p>}
       <div className="space-y-2.5">
-        {agents.slice(0, 5).map((a) => (
-          <div key={a.agent} className="flex items-center gap-3">
+        {agents.slice(0, 5).map((a, i) => (
+          <div key={a.agent} className="group flex items-center gap-3 rounded-sm px-1 py-0.5 -mx-1 transition-colors hover:bg-white/5">
+            <RankNumber n={i + 1} />
             {a.agent_image ? (
-              <img src={a.agent_image} alt={a.agent} className="h-9 w-9 rounded-sm" loading="lazy" />
+              <img src={a.agent_image} alt={a.agent} className="h-9 w-9 rounded-sm ring-1 ring-white/10" loading="lazy" />
             ) : (
               <div className="h-9 w-9 rounded-sm bg-muted" />
             )}
@@ -744,15 +748,15 @@ function TopAgents({ agents }: { agents: AgentStat[] }) {
           </div>
         ))}
       </div>
-    </section>
+    </Panel>
   )
 }
 
 function TopWeapons({ weapons }: { weapons: WeaponStat[] }) {
   const max = Math.max(...weapons.map((w) => w.kills), 1)
   return (
-    <section className="clip-bevel border border-border bg-card p-4">
-      <h2 className="mb-3 font-heading text-sm font-semibold tracking-wide">TOP WEAPONS</h2>
+    <Panel accent="red">
+      <SectionHeader icon={<Crosshair className="h-3.5 w-3.5" />} title="TOP WEAPONS" accent="red" />
       {weapons.length === 0 && (
         <p className="text-sm text-muted-foreground">No kill-feed data in this sample.</p>
       )}
@@ -782,7 +786,7 @@ function TopWeapons({ weapons }: { weapons: WeaponStat[] }) {
           </div>
         ))}
       </div>
-    </section>
+    </Panel>
   )
 }
 
@@ -790,15 +794,18 @@ function TopMaps({ maps }: { maps: MapStat[] }) {
   if (maps.length === 0) return null
   return (
     <section className="mt-4">
-      <h2 className="mb-3 font-heading text-sm font-semibold tracking-wide">MAP PERFORMANCE</h2>
+      <SectionHeader icon={<MapIcon className="h-3.5 w-3.5" />} title="MAP PERFORMANCE" accent="gold" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
         {maps.map((m) => (
-          <div key={m.map_name} className="clip-bevel-sm relative overflow-hidden border border-border bg-card">
+          <div
+            key={m.map_name}
+            className="clip-bevel-sm group relative overflow-hidden border border-border bg-card transition-colors duration-200 hover:border-white/20"
+          >
             {m.map_image && (
               <img
                 src={m.map_image}
                 alt={m.map_name}
-                className="h-20 w-full object-cover opacity-40"
+                className="h-20 w-full object-cover opacity-40 transition-opacity duration-200 group-hover:opacity-55"
                 loading="lazy"
               />
             )}
@@ -827,11 +834,18 @@ function AgentsTab({ agents }: { agents: AgentStat[] }) {
   if (agents.length === 0)
     return <p className="py-10 text-center text-sm text-muted-foreground">No agent data yet.</p>
   return (
-    <div className="clip-bevel animate-rise overflow-x-auto border border-border bg-card">
-      <table className="w-full min-w-[760px] text-sm">
+    <div className="clip-bevel animate-rise relative overflow-hidden border border-border bg-gradient-to-br from-card to-card/60">
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-px"
+        style={{ background: 'linear-gradient(90deg, transparent 4%, #a374ff 40%, #a374ff 60%, transparent 96%)' }}
+        aria-hidden
+      />
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[780px] text-sm">
         <thead>
           <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
-            <th className="px-4 py-2.5 font-medium">Agent</th>
+            <th className="px-4 py-2.5 font-medium">#</th>
+            <th className="px-2 py-2.5 font-medium">Agent</th>
             <th className="px-2 py-2.5 text-right font-medium">Games</th>
             <th className="px-2 py-2.5 text-right font-medium">Win %</th>
             <th className="px-2 py-2.5 text-right font-medium">K/D</th>
@@ -845,12 +859,15 @@ function AgentsTab({ agents }: { agents: AgentStat[] }) {
           </tr>
         </thead>
         <tbody>
-          {agents.map((a) => (
-            <tr key={a.agent} className="border-t border-border/40">
+          {agents.map((a, i) => (
+            <tr key={a.agent} className="border-t border-border/40 transition-colors hover:bg-white/[0.03]">
               <td className="px-4 py-2.5">
+                <RankNumber n={i + 1} />
+              </td>
+              <td className="px-2 py-2.5">
                 <div className="flex items-center gap-2.5">
                   {a.agent_image ? (
-                    <img src={a.agent_image} alt="" className="h-8 w-8 rounded-sm" loading="lazy" />
+                    <img src={a.agent_image} alt="" className="h-8 w-8 rounded-sm ring-1 ring-white/10" loading="lazy" />
                   ) : (
                     <div className="h-8 w-8 rounded-sm bg-muted" />
                   )}
@@ -878,6 +895,7 @@ function AgentsTab({ agents }: { agents: AgentStat[] }) {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }
@@ -888,9 +906,17 @@ function MapsTab({ maps }: { maps: MapStat[] }) {
   return (
     <div className="animate-rise grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {maps.map((m) => (
-        <div key={m.map_name} className="clip-bevel relative overflow-hidden border border-border bg-card">
+        <div
+          key={m.map_name}
+          className="clip-bevel group relative overflow-hidden border border-border bg-card transition-colors duration-200 hover:border-white/20"
+        >
           {m.map_image && (
-            <img src={m.map_image} alt="" className="h-32 w-full object-cover opacity-45" loading="lazy" />
+            <img
+              src={m.map_image}
+              alt=""
+              className="h-32 w-full object-cover opacity-45 transition-all duration-300 group-hover:scale-105 group-hover:opacity-60"
+              loading="lazy"
+            />
           )}
           <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-card via-card/50 to-transparent p-4">
             <div className="flex items-center justify-between gap-2">
@@ -935,8 +961,16 @@ function ArsenalTab({ weapons }: { weapons: WeaponStat[] }) {
   return (
     <div className="animate-rise grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {weapons.map((w, i) => (
-        <div key={w.weapon_id || w.name} className="clip-bevel border border-border bg-card p-4">
-          <div className="flex h-14 items-center justify-center">
+        <div
+          key={w.weapon_id || w.name}
+          className="clip-bevel group relative overflow-hidden border border-border bg-gradient-to-b from-card to-background/40 p-4 transition-colors duration-200 hover:border-primary/40"
+        >
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px"
+            style={{ background: 'linear-gradient(90deg, transparent 4%, #ff4655 40%, #ff4655 60%, transparent 96%)' }}
+            aria-hidden
+          />
+          <div className="flex h-14 items-center justify-center transition-transform duration-300 group-hover:scale-110">
             {w.image ? (
               <img
                 src={w.image}
@@ -951,9 +985,7 @@ function ArsenalTab({ weapons }: { weapons: WeaponStat[] }) {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-sm font-medium">{w.name || 'Unknown'}</span>
-            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
-              #{i + 1}
-            </span>
+            <RankNumber n={i + 1} />
           </div>
           <div className="mt-1 font-heading text-2xl font-bold tabular-nums">
             {w.kills} <span className="text-sm font-normal text-muted-foreground">kills</span>
@@ -977,8 +1009,13 @@ function MatchRow({ match, onOpen }: { match: MatchSummary; onOpen: () => void }
   return (
     <button
       onClick={onOpen}
-      className="clip-bevel-sm group relative flex w-full items-center gap-3 overflow-hidden border border-border bg-card p-3 text-left transition-colors hover:border-muted-foreground/40"
+      className="clip-bevel-sm group relative flex w-full items-center gap-3 overflow-hidden border border-border bg-gradient-to-r from-card to-card/70 p-3 text-left transition-all duration-200 hover:border-white/25"
     >
+      <div
+        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+        style={{ background: `linear-gradient(90deg, ${accent}14, transparent 55%)` }}
+        aria-hidden
+      />
       {match.map_image && (
         <img
           src={match.map_image}
@@ -988,16 +1025,16 @@ function MatchRow({ match, onOpen }: { match: MatchSummary; onOpen: () => void }
           className="absolute inset-y-0 right-0 h-full w-56 object-cover opacity-15 [mask-image:linear-gradient(to_left,black,transparent)]"
         />
       )}
-      <div className="h-11 w-1 shrink-0" style={{ backgroundColor: accent }} />
+      <div className="relative h-11 w-1 shrink-0" style={{ backgroundColor: accent, boxShadow: `0 0 10px ${accent}80` }} />
       {match.subject_agent_image ? (
         <img
           src={match.subject_agent_image}
           alt={match.subject_agent}
-          className="h-11 w-11 rounded-sm"
+          className="relative h-11 w-11 rounded-sm ring-1 ring-white/10"
           loading="lazy"
         />
       ) : (
-        <div className="h-11 w-11 rounded-sm bg-muted" />
+        <div className="relative h-11 w-11 rounded-sm bg-muted" />
       )}
       <div className="relative min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
