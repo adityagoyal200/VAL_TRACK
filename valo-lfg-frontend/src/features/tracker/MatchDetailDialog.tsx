@@ -57,7 +57,7 @@ export function MatchDetailDialog({
       onClick={onClose}
     >
       <div
-        className="clip-bevel animate-rise mt-8 w-full max-w-5xl border border-border bg-card shadow-2xl"
+        className="clip-bevel glass animate-rise mt-8 w-full max-w-5xl border border-border shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative overflow-hidden border-b border-border">
@@ -262,7 +262,7 @@ function PlayerRow({
   const canOpen = !!(p.name && p.tag)
   return (
     <tr
-      className={`border-t border-border/40 transition-colors ${p.is_subject ? 'bg-cyan/[0.07]' : 'hover:bg-white/[0.02]'}`}
+      className={`hud-row [--row-accent:#00e5c0] border-t border-border/40 ${p.is_subject ? 'bg-cyan/[0.07]' : ''}`}
       style={p.is_subject ? { boxShadow: 'inset 2px 0 0 0 #00e5c0' } : undefined}
     >
       <td className="px-5 py-2">

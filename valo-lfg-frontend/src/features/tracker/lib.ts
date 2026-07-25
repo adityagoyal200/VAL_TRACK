@@ -63,6 +63,15 @@ export function formatDateTime(iso: string): string {
   return `${date} · ${time}`
 }
 
+/** Short calendar date, e.g. "Jul 5, 2026" — for "first played" style dates
+ * where the absolute day matters more than how long ago it was. */
+export function formatShortDate(iso: string): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
 export function timeAgo(iso: string): string {
   if (!iso) return ''
   const secs = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000))
@@ -118,11 +127,11 @@ export interface RatingTier {
 // Labels stay neutral/descriptive (no shaming) — this rates only your OWN
 // games, as self-improvement feedback, per Riot's developer policies.
 export const RATING_TIERS: RatingTier[] = [
-  { grade: 'S', min: 9.0, color: '#e7c15a', ink: '#1a1206', label: 'Elite' }, // gold
-  { grade: 'A', min: 7.5, color: '#28c47e', ink: '#04160d', label: 'Great' }, // green
-  { grade: 'B', min: 6.0, color: '#43bdcf', ink: '#04171b', label: 'Good' }, // teal
-  { grade: 'C', min: 4.5, color: '#c3ccd4', ink: '#12171c', label: 'Average' }, // grey
-  { grade: 'D', min: 3.0, color: '#e8973a', ink: '#1c1004', label: 'Fair' }, // orange
+  { grade: 'S', min: 8.3, color: '#e7c15a', ink: '#1a1206', label: 'Elite' }, // gold
+  { grade: 'A', min: 6.6, color: '#28c47e', ink: '#04160d', label: 'Great' }, // green
+  { grade: 'B', min: 5.0, color: '#43bdcf', ink: '#04171b', label: 'Good' }, // teal
+  { grade: 'C', min: 3.5, color: '#c3ccd4', ink: '#12171c', label: 'Average' }, // grey
+  { grade: 'D', min: 2.0, color: '#e8973a', ink: '#1c1004', label: 'Fair' }, // orange
   { grade: 'F', min: 0.0, color: '#ff5163', ink: '#ffffff', label: 'Building' }, // red
 ]
 

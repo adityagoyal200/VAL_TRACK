@@ -265,9 +265,19 @@ export interface ActStat {
   top_maps: CareerMap[]
 }
 
+export interface ServerStat {
+  server: string
+  games: number
+  wins: number
+  losses: number
+  win_rate: number
+  avg_acs: number
+}
+
 export interface Career {
   acts: ActStat[]
   all: ActStat
+  servers: ServerStat[]
 }
 
 export interface PartySizeStat {
@@ -320,6 +330,8 @@ export interface EncounteredPlayer {
   losses: number
   win_rate: number
   last_seen: string
+  first_seen: string // earliest game this account showed up with the subject (across all acts)
+  first_seen_act: string // act/season name of that first shared game
   acts: string[]
 }
 
@@ -337,6 +349,8 @@ export interface PartyGroup {
   label: string
   games: number
   last_seen: string
+  first_seen: string // earliest game this exact group appeared together (across all acts)
+  first_seen_act: string // act/season name of that first shared game
   acts: string[]
 }
 

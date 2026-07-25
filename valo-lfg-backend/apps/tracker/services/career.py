@@ -129,6 +129,44 @@ class ActStat:
         return sorted(self.maps.values(), key=lambda m: (-m.games, -m.win_rate))[:8]
 
 
+@dataclass
+class ServerStat:
+    """Games played on one game-server cluster (Mumbai, Singapore, …) across
+    the whole stored history — 'where do I actually play' at a glance."""
+    server: str
+    games: int = 0
+    wins: int = 0
+    losses: int = 0
+    acs_total: int = 0
+
+    @property
+    def win_rate(self) -> float:
+        decided = self.wins + self.losses
+        return round(100 * self.wins / decided, 1) if decided else 0.0
+
+    @property
+    def avg_acs(self) -> int:
+        return round(self.acs_total / self.games) if self.games else 0
+
+
+def build_server_breakdown(matches: list[StoredMatch]) -> list[ServerStat]:
+    """Count games per server cluster, most-played first. Skips matches whose
+    payload carried no cluster (older records / non-standard queues)."""
+    by_server: dict[str, ServerStat] = {}
+    for m in matches:
+        name = (m.cluster or "").strip()
+        if not name:
+            continue
+        s = by_server.setdefault(name, ServerStat(server=name))
+        s.games += 1
+        if m.won is True:
+            s.wins += 1
+        elif m.won is False:
+            s.losses += 1
+        s.acs_total += m.acs
+    return sorted(by_server.values(), key=lambda s: -s.games)
+
+
 def _accumulate(act: ActStat, m: StoredMatch) -> None:
     if not act.label and m.act_name:
         act.label = m.act_name

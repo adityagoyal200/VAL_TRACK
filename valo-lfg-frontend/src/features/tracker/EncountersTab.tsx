@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2, RefreshCw, Skull, Swords, Users } from 'lucide-react'
+import { CalendarClock, Loader2, RefreshCw, Skull, Swords, Users } from 'lucide-react'
 import {
   getEncounters,
   getEncountersBackfillStatus,
@@ -11,7 +11,7 @@ import {
   type TrackerSubject,
 } from '@/api/tracker'
 import { Button } from '@/components/ui/button'
-import { LOSS_COLOR, WIN_COLOR, subjectKey, timeAgo } from './lib'
+import { LOSS_COLOR, WIN_COLOR, formatShortDate, subjectKey, timeAgo } from './lib'
 import { Panel, RankNumber, SectionHeader } from './ui'
 
 /**
@@ -192,7 +192,10 @@ function PlayerList({
       )}
       <div className="space-y-2.5">
         {players.map((p, i) => (
-          <div key={p.puuid} className="group -mx-1 flex items-center gap-3 rounded-sm px-1 py-0.5 transition-colors hover:bg-white/5">
+          <div
+            key={p.puuid}
+            className={`hud-row group -mx-1 flex items-center gap-3 rounded-sm px-2 py-1 ${accent === 'red' ? '[--row-accent:#ff4655]' : '[--row-accent:#00e5c0]'}`}
+          >
             <RankNumber n={i + 1} />
             {p.agent_image ? (
               <img src={p.agent_image} alt="" aria-hidden className="h-9 w-9 rounded-sm ring-1 ring-white/10" loading="lazy" />
@@ -208,6 +211,20 @@ function PlayerList({
                 {p.games} games · {p.acts.length} act{p.acts.length === 1 ? '' : 's'} ·{' '}
                 {timeAgo(p.last_seen)}
               </div>
+              {p.first_seen && (
+                <div
+                  className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground/80"
+                  title={`Earliest game ${recordAgainst ? 'against' : 'with'} this account, across your whole history`}
+                >
+                  <CalendarClock className="h-3 w-3 shrink-0" />
+                  <span>
+                    First {recordAgainst ? 'faced' : 'played'} {formatShortDate(p.first_seen)}
+                    {p.first_seen_act && (
+                      <span className="text-muted-foreground/60"> · {p.first_seen_act}</span>
+                    )}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="text-right">
               <div className="font-heading text-sm font-bold tabular-nums">{p.games}</div>
@@ -281,6 +298,17 @@ function PartyList({
               {g.side === 'enemy' ? 'Faced' : 'Together'} {g.games} time{g.games === 1 ? '' : 's'} ·{' '}
               {g.acts.join(', ')} · {timeAgo(g.last_seen)}
             </div>
+            {g.first_seen && (
+              <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground/80">
+                <CalendarClock className="h-3 w-3 shrink-0" />
+                <span>
+                  First seen together {formatShortDate(g.first_seen)}
+                  {g.first_seen_act && (
+                    <span className="text-muted-foreground/60"> · {g.first_seen_act}</span>
+                  )}
+                </span>
+              </div>
+            )}
           </div>
         ))}
       </div>

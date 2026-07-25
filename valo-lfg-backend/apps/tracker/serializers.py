@@ -5,7 +5,7 @@ computed @property fields serialize directly.
 """
 from rest_framework import serializers
 
-from apps.tracker.services.rating import rate_match_player
+from apps.tracker.services.rating import rate_match_player, rate_stored_match
 
 
 class MatchPlayerSerializer(serializers.Serializer):
@@ -85,6 +85,16 @@ class MatchSummarySerializer(serializers.Serializer):
         return rate_match_player(sub) if sub else None
 
 
+class RoundInfoSerializer(serializers.Serializer):
+    number = serializers.IntegerField()
+    winning_team = serializers.CharField()
+    result = serializers.CharField()
+    bomb_planted = serializers.BooleanField()
+    bomb_defused = serializers.BooleanField()
+    team_loadouts = serializers.DictField(child=serializers.IntegerField())
+    team_buys = serializers.DictField(child=serializers.CharField())
+
+
 class MatchDetailSerializer(MatchSummarySerializer):
     """Full scoreboard for one match, plus match-level context."""
     season_name = serializers.CharField()
@@ -93,6 +103,34 @@ class MatchDetailSerializer(MatchSummarySerializer):
     queue_id = serializers.CharField()
     teams = MatchTeamSerializer(many=True)
     players = MatchPlayerSerializer(many=True)
+    rounds_detail = RoundInfoSerializer(many=True)
+
+
+class StoredMatchSerializer(serializers.Serializer):
+    """One row of the deep, paginated match-history browser — lighter than
+    `MatchSummarySerializer` since it comes from the lifetime stored-matches
+    feed (unlimited depth) rather than the ~20-game-capped v4 detail
+    endpoint, so it has no KAST/first-bloods/party/MVP data."""
+    match_id = serializers.CharField()
+    map_name = serializers.CharField()
+    map_image = serializers.CharField()
+    mode = serializers.CharField()
+    act_name = serializers.CharField()
+    started_at = serializers.CharField()
+    won = serializers.BooleanField(allow_null=True)
+    kills = serializers.IntegerField()
+    deaths = serializers.IntegerField()
+    assists = serializers.IntegerField()
+    acs = serializers.IntegerField()
+    kd = serializers.FloatField()
+    hs_percent = serializers.FloatField()
+    adr = serializers.FloatField()
+    rounds_won = serializers.IntegerField()
+    rounds_lost = serializers.IntegerField()
+    rating = serializers.SerializerMethodField()
+
+    def get_rating(self, obj) -> float | None:
+        return rate_stored_match(obj)
 
 
 class MMRHistoryEntrySerializer(serializers.Serializer):
@@ -233,9 +271,19 @@ class ActStatSerializer(serializers.Serializer):
     top_maps = CareerMapSerializer(many=True)
 
 
+class ServerStatSerializer(serializers.Serializer):
+    server = serializers.CharField()
+    games = serializers.IntegerField()
+    wins = serializers.IntegerField()
+    losses = serializers.IntegerField()
+    win_rate = serializers.FloatField()
+    avg_acs = serializers.IntegerField()
+
+
 class CareerSerializer(serializers.Serializer):
     acts = ActStatSerializer(many=True)
     all = ActStatSerializer()
+    servers = ServerStatSerializer(many=True)
 
 
 class PartySizeStatSerializer(serializers.Serializer):
@@ -288,6 +336,8 @@ class EncounteredPlayerSerializer(serializers.Serializer):
     losses = serializers.IntegerField()
     win_rate = serializers.FloatField()
     last_seen = serializers.CharField(allow_blank=True)
+    first_seen = serializers.CharField(allow_blank=True)
+    first_seen_act = serializers.CharField(allow_blank=True)
     acts = serializers.ListField(child=serializers.CharField(), source="act_list")
 
 
@@ -299,6 +349,8 @@ class PartyGroupSerializer(serializers.Serializer):
     label = serializers.CharField()
     games = serializers.IntegerField()
     last_seen = serializers.CharField(allow_blank=True)
+    first_seen = serializers.CharField(allow_blank=True)
+    first_seen_act = serializers.CharField(allow_blank=True)
     acts = serializers.ListField(child=serializers.CharField(), source="act_list")
 
 

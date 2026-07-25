@@ -91,14 +91,14 @@ export function CollectionTab() {
             <SyncPanel />
           </div>
 
-          <div className="clip-bevel-sm mt-4 flex flex-wrap items-center gap-2 border border-border/70 bg-card/40 p-2">
+          <div className="clip-bevel-sm glass mt-4 flex flex-wrap items-center gap-2 border border-border/70 p-2">
             <div className="relative">
               <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search skins…"
-                className="clip-bevel-sm h-9 w-52 border border-border bg-card pr-3 pl-8 text-sm outline-none placeholder:text-muted-foreground focus:border-muted-foreground/60"
+                className="clip-bevel-sm glass h-9 w-52 border border-border pr-3 pl-8 text-sm outline-none placeholder:text-muted-foreground focus:border-muted-foreground/60"
               />
             </div>
             <Chip selected={weapon === ''} onClick={() => setWeapon('')}>
@@ -123,7 +123,7 @@ export function CollectionTab() {
               return (
                 <div
                   key={s.skinId}
-                  className="clip-bevel-sm group relative overflow-hidden border border-border bg-gradient-to-b from-card to-background/40 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/25"
+                  className="clip-bevel-sm glass group relative overflow-hidden border border-border p-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/25"
                   style={{
                     boxShadow: tier
                       ? `inset 0 2px 0 0 ${tier.color}, 0 10px 24px -12px ${tier.color}66`
@@ -199,7 +199,7 @@ function SyncPanel({ firstTime = false }: { firstTime?: boolean }) {
   }
 
   return (
-    <div className="clip-bevel tactical-grid relative overflow-hidden border border-border bg-gradient-to-br from-card to-card/60 p-8 text-center">
+    <div className="clip-bevel glass tactical-grid relative overflow-hidden border border-border p-8 text-center">
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-px"
         style={{ background: 'linear-gradient(90deg, transparent 10%, #00e5c0 40%, #00e5c0 60%, transparent 90%)' }}

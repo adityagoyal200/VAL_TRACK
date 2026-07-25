@@ -103,6 +103,27 @@
       radial-gradient(48rem 48rem at -12% 112%, oklch(0.84 0.14 180 / 0.08), transparent 60%);
     background-attachment: fixed;
   }
+  /* Premium film-grain + soft vignette over the whole viewport — the texture
+     that makes high-end dark sites read as "produced", not flat. Pointer-safe
+     and very low opacity so it never hurts legibility. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0.022;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 59;
+    pointer-events: none;
+    background: radial-gradient(120% 90% at 50% 0%, transparent 55%, oklch(0.12 0.01 265 / 0.55) 100%);
+  }
   html {
     @apply font-sans;
     -webkit-font-smoothing: antialiased;
@@ -168,9 +189,131 @@
     );
   }
 
+  /* Glassmorphism 2.0: translucent frosted surface with a light-catching top
+     edge. Panels sit over the WebGL/ambient-glow backdrop, so the blur picks
+     up colour from behind and gives real depth instead of a flat fill. */
+  .glass {
+    background-color: oklch(0.216 0.01 265 / 0.62);
+    backdrop-filter: blur(9px) saturate(1.25);
+    -webkit-backdrop-filter: blur(9px) saturate(1.25);
+    box-shadow:
+      inset 0 1px 0 0 oklch(1 0 0 / 0.06),
+      0 18px 40px -24px oklch(0 0 0 / 0.85);
+  }
+
+  /* Cursor spotlight — a child `.spotlight` reads --spot-x/--spot-y (set on
+     pointer move) and paints a soft accent halo that tracks the cursor. Fades
+     in only on hover so idle panels stay calm. */
+  .spotlight {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    background: radial-gradient(
+      240px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+      var(--spot-color, oklch(1 0 0 / 0.10)),
+      transparent 62%
+    );
+  }
+  .group\/panel:hover .spotlight {
+    opacity: 1;
+  }
+
+  /* Diagonal light that sweeps across a surface on hover. */
+  .sheen-sweep::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(115deg, transparent 32%, oklch(1 0 0 / 0.10) 46%, transparent 60%);
+    transform: translateX(-130%);
+    transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .sheen-sweep:hover::after {
+    transform: translateX(130%);
+  }
+
+  /* Reusable frosted tile for every small stat box / card across the tabs,
+     so no surface is left as a flat grey rectangle. */
+  .hud-tile {
+    background-color: oklch(0.216 0.01 265 / 0.5);
+    backdrop-filter: blur(6px) saturate(1.15);
+    -webkit-backdrop-filter: blur(6px) saturate(1.15);
+    border: 1px solid var(--border);
+    box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 0.05);
+    transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .hud-tile:hover {
+    border-color: oklch(1 0 0 / 0.22);
+  }
+
+  /* Reusable list row: a subtle glass wash plus a lit accent bar that slides in
+     on hover. Set --row-accent to the section's colour. */
+  .hud-row {
+    position: relative;
+    transition: background-color 0.18s ease;
+  }
+  .hud-row::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 18%;
+    bottom: 18%;
+    width: 2px;
+    border-radius: 2px;
+    background: var(--row-accent, #00e5c0);
+    box-shadow: 0 0 8px 0 var(--row-accent, #00e5c0);
+    opacity: 0;
+    transform: scaleY(0.4);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+  .hud-row:hover {
+    background-color: oklch(1 0 0 / 0.045);
+  }
+  .hud-row:hover::before {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+
+  /* Hover lift for interactive cards. */
+  .hover-lift {
+    transition: transform 0.28s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.28s ease, border-color 0.2s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-3px);
+  }
+
+  /* Slow-panning aurora blob for hero backdrops — layer 2-3 with different
+     hues/positions for a living gradient mesh. */
+  .aurora {
+    position: absolute;
+    pointer-events: none;
+    filter: blur(56px);
+    opacity: 0.55;
+    border-radius: 9999px;
+    mix-blend-mode: screen;
+  }
+
+  /* A travelling light along a horizontal accent line (top edge of panels). */
+  .animate-beam {
+    background-size: 220% 100%;
+    animation: beam 3.4s linear infinite;
+  }
+  .animate-pulse-glow {
+    animation: pulseGlow 3.6s ease-in-out infinite;
+  }
+
   /* Deterministic entrance — visible even if JS never runs (fill: both). */
   .animate-rise {
     animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  /* Fade + scale-in for grids that cascade with a per-item --i stagger. */
+  .animate-pop {
+    animation: pop 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: calc(var(--i, 0) * 45ms);
   }
   .animate-drift {
     animation: drift 22s ease-in-out infinite alternate;
@@ -184,6 +327,17 @@
   from {
     opacity: 0;
     transform: translateY(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
   }
   to {
     opacity: 1;
@@ -209,6 +363,37 @@
   }
 }
 
+@keyframes beam {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes auroraDrift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(6%, 4%, 0) scale(1.15);
+  }
+  100% {
+    transform: translate3d(-4%, -3%, 0) scale(1.05);
+  }
+}
+
 /* Hide the native cursor only where a custom one runs (fine pointer + JS). */
 @media (hover: hover) and (pointer: fine) {
   html.custom-cursor,
@@ -219,8 +404,15 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-rise,
+  .animate-pop,
   .animate-drift,
-  .animate-drift-slow {
+  .animate-drift-slow,
+  .animate-beam,
+  .animate-pulse-glow {
     animation: none;
+  }
+  .sheen-sweep::after,
+  .hover-lift {
+    transition: none;
   }
 }

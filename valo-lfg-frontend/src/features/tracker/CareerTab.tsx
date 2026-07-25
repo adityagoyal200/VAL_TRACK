@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Crosshair, Loader2, Map as MapIcon, Trophy, UsersRound } from 'lucide-react'
+import { Crosshair, Loader2, Map as MapIcon, Server, Trophy, UsersRound } from 'lucide-react'
 import { Chip } from '@/components/chip'
 import {
   getCareer,
   type ActStat,
   type CareerAgent,
   type CareerMap,
+  type ServerStat,
   type TrackerSubject,
 } from '@/api/tracker'
 import { fetchRankIcons } from '@/api/valorantAssets'
@@ -129,7 +130,60 @@ export function CareerTab({ mode, subject = null }: { mode: string; subject?: Tr
         <CareerAgents agents={active.top_agents} />
         <CareerMaps maps={active.top_maps} />
       </div>
+
+      <CareerServers servers={career.data?.servers ?? []} />
     </div>
+  )
+}
+
+/**
+ * Lifetime game-server breakdown — how many games on each cluster (Mumbai,
+ * Singapore, Tokyo, …). Always spans the whole stored history regardless of
+ * the selected act, since where you queue isn't an act-specific stat.
+ */
+function CareerServers({ servers }: { servers: ServerStat[] }) {
+  if (servers.length === 0) return null
+  const max = Math.max(...servers.map((s) => s.games))
+  const total = servers.reduce((sum, s) => sum + s.games, 0)
+  return (
+    <Panel accent="cyan" className="mt-4">
+      <SectionHeader
+        icon={<Server className="h-3.5 w-3.5" />}
+        title="SERVERS PLAYED"
+        kicker={`${servers.length} game servers · ${total.toLocaleString()} games`}
+        accent="cyan"
+      />
+      <div className="space-y-3">
+        {servers.map((s, i) => (
+          <div key={s.server} className="hud-row [--row-accent:#00e5c0] -mx-1 flex items-center gap-3 rounded-sm px-2 py-1">
+            <RankNumber n={i + 1} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="truncate text-sm font-medium">{s.server}</span>
+                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                  {s.games.toLocaleString()} game{s.games === 1 ? '' : 's'}
+                  <span className="text-muted-foreground/50"> · {Math.round((100 * s.games) / total)}%</span>
+                  {(s.wins > 0 || s.losses > 0) && (
+                    <span
+                      className="ml-1.5 font-semibold"
+                      style={{ color: s.win_rate >= 50 ? WIN_COLOR : LOSS_COLOR }}
+                    >
+                      {s.win_rate}% WR
+                    </span>
+                  )}
+                </span>
+              </div>
+              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+                <div
+                  className="h-full rounded-full bg-cyan transition-all"
+                  style={{ width: `${Math.round((100 * s.games) / max)}%`, boxShadow: '0 0 8px -1px #00e5c0' }}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Panel>
   )
 }
 
@@ -148,7 +202,7 @@ function AccuracyCard({ act }: { act: ActStat }) {
 
 function CareerStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="clip-bevel-sm border border-border/70 bg-background/40 p-2.5 transition-colors hover:border-white/20">
+    <div className="clip-bevel-sm hud-tile hover-lift p-2.5">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="mt-0.5 font-heading text-lg font-bold tabular-nums">{value}</div>
     </div>
@@ -162,7 +216,7 @@ function CareerAgents({ agents }: { agents: CareerAgent[] }) {
       {agents.length === 0 && <p className="text-sm text-muted-foreground">No agent data.</p>}
       <div className="space-y-2.5">
         {agents.map((a, i) => (
-          <div key={a.agent} className="group -mx-1 flex items-center gap-3 rounded-sm px-1 py-0.5 transition-colors hover:bg-white/5">
+          <div key={a.agent} className="hud-row [--row-accent:#a374ff] group -mx-1 flex items-center gap-3 rounded-sm px-2 py-1">
             <RankNumber n={i + 1} />
             {a.agent_image ? (
               <img src={a.agent_image} alt={a.agent} className="h-9 w-9 rounded-sm ring-1 ring-white/10" loading="lazy" />
@@ -195,7 +249,7 @@ function CareerMaps({ maps }: { maps: CareerMap[] }) {
       {maps.length === 0 && <p className="text-sm text-muted-foreground">No map data.</p>}
       <div className="space-y-2.5">
         {maps.map((m, i) => (
-          <div key={m.map_name} className="group -mx-1 flex items-center gap-3 rounded-sm px-1 py-0.5 transition-colors hover:bg-white/5">
+          <div key={m.map_name} className="hud-row [--row-accent:#e7c15a] group -mx-1 flex items-center gap-3 rounded-sm px-2 py-1">
             <RankNumber n={i + 1} />
             {m.map_image ? (
               <img

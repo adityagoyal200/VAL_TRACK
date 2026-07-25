@@ -50,7 +50,9 @@ class EncounterPlayer(models.Model):
     puuid = models.CharField(max_length=64, db_index=True)
     name = models.CharField(max_length=64, blank=True, default="")
     tag = models.CharField(max_length=16, blank=True, default="")
-    team_id = models.CharField(max_length=8, blank=True, default="")
+    # Usually "Red"/"Blue", but modes like deathmatch put a puuid-length value
+    # here (the v4 payload's `team` fallback), so keep it puuid-wide.
+    team_id = models.CharField(max_length=128, blank=True, default="")
     party_id = models.CharField(max_length=64, blank=True, default="")
     agent = models.CharField(max_length=32, blank=True, default="")
     agent_image = models.CharField(max_length=200, blank=True, default="")

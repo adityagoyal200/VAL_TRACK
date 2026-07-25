@@ -26,9 +26,10 @@ from apps.tracker.serializers import (
     OverviewStatsSerializer,
     ProfileHeaderSerializer,
     SquadSerializer,
+    StoredMatchSerializer,
 )
 from apps.tracker.services.aggregate import build_overview
-from apps.tracker.services.career import build_career
+from apps.tracker.services.career import build_career, build_server_breakdown
 from apps.tracker.services.encounters import build_encounters
 from apps.tracker.services.ingest import ingest_match, ingest_matches
 from apps.tracker.services.squad import build_squad
@@ -208,6 +209,36 @@ class _MatchesPayload:
         return {"matches": MatchSummarySerializer(matches, many=True).data}
 
 
+MATCH_HISTORY_PAGE_SIZE = 20
+
+
+class _MatchHistoryPayload:
+    """Deep, paginated match browser. HenrikDev's detailed v4 match endpoint
+    (`get_matches`, used by `_MatchesPayload` above) is hard-capped at the
+    ~20 most recent games with no pagination — this instead pages through
+    the lifetime stored-matches feed (already used for Career/Encounters),
+    so "load more" can walk arbitrarily far back into a player's history.
+    Rows are lighter (no KAST/party/MVP — that data only exists in the
+    detailed endpoint) but the match id still opens the full scoreboard via
+    the existing match-detail view, which fetches any historical match_id."""
+
+    def payload(self, request, subject, **kwargs):
+        mode = request.query_params.get("mode") or None
+        try:
+            page = max(1, int(request.query_params.get("page", 1)))
+        except ValueError:
+            page = 1
+        stored = riot.get_stored_matches_page(
+            subject.region, subject.game_name, subject.tag_line,
+            mode=mode, page=page, size=MATCH_HISTORY_PAGE_SIZE,
+        )
+        return {
+            "matches": StoredMatchSerializer(stored, many=True).data,
+            "page": page,
+            "has_more": len(stored) == MATCH_HISTORY_PAGE_SIZE,
+        }
+
+
 class _MatchDetailPayload:
     """Full scoreboard for one match id."""
 
@@ -232,7 +263,8 @@ class _CareerPayload:
             mode=mode, max_pages=CAREER_MAX_PAGES,
         )
         acts, lifetime = build_career(stored)
-        return CareerSerializer({"acts": acts, "all": lifetime}).data
+        servers = build_server_breakdown(stored)
+        return CareerSerializer({"acts": acts, "all": lifetime, "servers": servers}).data
 
 
 class _SquadPayload:
@@ -265,6 +297,10 @@ class TrackerMatchesView(_MatchesPayload, _SelfTrackerView):
     pass
 
 
+class TrackerMatchHistoryView(_MatchHistoryPayload, _SelfTrackerView):
+    pass
+
+
 class TrackerMatchDetailView(_MatchDetailPayload, _SelfTrackerView):
     pass
 
@@ -286,6 +322,10 @@ class PublicOverviewView(_OverviewPayload, _PublicTrackerView):
 
 
 class PublicMatchesView(_MatchesPayload, _PublicTrackerView):
+    pass
+
+
+class PublicMatchHistoryView(_MatchHistoryPayload, _PublicTrackerView):
     pass
 
 

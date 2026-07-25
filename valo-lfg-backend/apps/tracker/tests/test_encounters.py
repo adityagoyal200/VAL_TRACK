@@ -44,7 +44,10 @@ def _player(puuid, team, party="", **overrides):
     return MatchPlayer(**base)
 
 
-def _match(match_id, *, subject_won=True, party_a="party-a", party_enemy="party-e"):
+def _match(
+    match_id, *, subject_won=True, party_a="party-a", party_enemy="party-e",
+    started_at="2026-07-04T18:30:00+00:00", season_name="V26 · Act IV",
+):
     players = [
         _player("subject", "Red", party=party_a, is_subject=True),
         _player("friend", "Red", party=party_a),
@@ -54,9 +57,9 @@ def _match(match_id, *, subject_won=True, party_a="party-a", party_enemy="party-
     ]
     return Match(
         match_id=match_id, map_name="Ascent", map_id="mid", map_image="img", mode="Competitive",
-        started_at="2026-07-04T18:30:00+00:00", game_length_seconds=2100,
+        started_at=started_at, game_length_seconds=2100,
         teams=[MatchTeam("Red", subject_won, 13, 9), MatchTeam("Blue", not subject_won, 9, 13)],
-        players=players, season_name="V26 · Act IV", subject_won=subject_won,
+        players=players, season_name=season_name, subject_won=subject_won,
     )
 
 
@@ -110,6 +113,33 @@ def test_build_encounters_finds_teammates_opponents_and_groups(db):
     assert enemy_duo.side == "enemy"
     assert enemy_duo.games == 2
     assert enemy_duo.label == "Duo"
+
+
+def test_build_encounters_tracks_first_and_last_seen(db):
+    # Ingest out of chronological order to prove first_seen is the *earliest*
+    # shared game (not just the first one ingested) and last_seen the latest.
+    ingest_matches([
+        _match("m_mid", started_at="2025-03-10T12:00:00+00:00", season_name="V25 · Act II"),
+        _match("m_old", started_at="2024-01-02T09:00:00+00:00", season_name="E8 · Act I"),
+        _match("m_new", started_at="2026-07-04T18:30:00+00:00", season_name="V26 · Act IV"),
+    ])
+
+    e = build_encounters("subject")
+
+    friend = next(t for t in e.teammates if t.puuid == "friend")
+    assert friend.first_seen == "2024-01-02T09:00:00+00:00"
+    assert friend.last_seen == "2026-07-04T18:30:00+00:00"
+    # The earliest game is tracked with the act it happened in, across all acts.
+    assert friend.first_seen_act == "E8 · Act I"
+
+    enemy1 = next(o for o in e.opponents if o.puuid == "enemy1")
+    assert enemy1.first_seen == "2024-01-02T09:00:00+00:00"
+    assert enemy1.first_seen_act == "E8 · Act I"
+
+    ally_duo = next(g for g in e.ally_parties if g.size == 2)
+    assert ally_duo.first_seen == "2024-01-02T09:00:00+00:00"
+    assert ally_duo.last_seen == "2026-07-04T18:30:00+00:00"
+    assert ally_duo.first_seen_act == "E8 · Act I"
 
 
 def test_build_encounters_no_history(db):

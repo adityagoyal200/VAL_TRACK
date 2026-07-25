@@ -145,6 +145,27 @@ class MatchTeam:
 
 
 @dataclass
+class RoundInfo:
+    """One round's outcome + team economy, for the round-by-round timeline
+    and buy-phase graph on the match detail view. Built entirely from data
+    already present in the v4 match payload's `rounds` array — no extra
+    API calls."""
+    number: int  # 1-indexed
+    winning_team: str  # "Red" / "Blue" — matches MatchTeam.team_id
+    result: str  # raw outcome, e.g. "Eliminated" / "Detonate" / "Defuse" / "Surrendered"
+    bomb_planted: bool = False
+    bomb_defused: bool = False
+    team_loadouts: dict = None  # {"Red": avg loadout value, "Blue": ...}
+    team_buys: dict = None  # {"Red": "eco"|"semi"|"full", "Blue": ...}
+
+    def __post_init__(self):
+        if self.team_loadouts is None:
+            self.team_loadouts = {}
+        if self.team_buys is None:
+            self.team_buys = {}
+
+
+@dataclass
 class Match:
     """A parsed competitive/other match. `summary_for` fields describe the
     tracked player's own line so the list view needs no client-side scan."""
@@ -182,8 +203,11 @@ class Match:
     subject_placement: int = 0  # subject's ACS rank in the lobby (1 = top)
     subject_weapons: list = None  # subject's per-weapon kills, for aggregation
     subject_duels: list = None  # subject's kill/death feed vs each opponent
+    rounds_detail: list = None  # list[RoundInfo] — round-by-round outcome + economy
 
     def __post_init__(self):
+        if self.rounds_detail is None:
+            self.rounds_detail = []
         if self.subject_weapons is None:
             self.subject_weapons = []
         if self.subject_duels is None:
@@ -651,6 +675,52 @@ def _apply_timeline_stats(raw: dict, players: list[MatchPlayer], rounds: int) ->
         )
 
 
+# Team-total buy-value thresholds (5 players), roughly standard across
+# Valorant economy trackers. Approximate by design — real buy decisions are
+# per-player, this just labels the round for a quick-scan graph.
+BUY_ECO_MAX = 5000
+BUY_SEMI_MAX = 20000
+
+
+def _buy_type(loadout_value: int) -> str:
+    if loadout_value < BUY_ECO_MAX:
+        return "eco"
+    if loadout_value < BUY_SEMI_MAX:
+        return "semi"
+    return "full"
+
+
+def _parse_rounds(raw: dict) -> list[RoundInfo]:
+    """Round-by-round outcome + team economy from the v4 payload's `rounds`
+    array — already fetched for the kill-feed timeline stats, just unused
+    until now. Tolerant of a missing/partial array."""
+    out: list[RoundInfo] = []
+    for i, rnd in enumerate(raw.get("rounds") or [], start=1):
+        team_totals: dict[str, int] = defaultdict(int)
+        team_counts: dict[str, int] = defaultdict(int)
+        for s in rnd.get("stats") or []:
+            player = s.get("player") or {}
+            team = str(player.get("team") or "")
+            if not team:
+                continue
+            econ = s.get("economy") or {}
+            team_totals[team] += _as_int(econ.get("loadout_value"))
+            team_counts[team] += 1
+        team_loadouts = {
+            team: round(total / team_counts[team]) for team, total in team_totals.items()
+        }
+        out.append(RoundInfo(
+            number=_as_int(rnd.get("id"), i - 1) + 1,
+            winning_team=str(rnd.get("winning_team") or ""),
+            result=str(rnd.get("result") or ""),
+            bomb_planted=bool(rnd.get("plant")) or bool(rnd.get("bomb_planted")),
+            bomb_defused=bool(rnd.get("defuse")) or bool(rnd.get("bomb_defused")),
+            team_loadouts=team_loadouts,
+            team_buys={team: _buy_type(total) for team, total in team_loadouts.items()},
+        ))
+    return out
+
+
 def parse_match(raw: dict, subject_puuid: str) -> Match:
     """Parse one HenrikDev v4 match object into a `Match`. Tolerant of missing
     keys — a partial payload yields zeros rather than raising."""
@@ -685,6 +755,7 @@ def parse_match(raw: dict, subject_puuid: str) -> Match:
         cluster=meta.get("cluster") or "",
         region=(meta.get("region") or "").upper(),
         queue_id=queue.get("id") or "",
+        rounds_detail=_parse_rounds(raw),
     )
 
     subject = next((p for p in players if p.is_subject), None)
@@ -825,6 +896,8 @@ class StoredMatch:
     damage_received: int
     rounds_won: int = 0
     rounds_lost: int = 0
+    cluster: str = ""  # game-server location, e.g. "Mumbai" / "Singapore"
+    region: str = ""   # account region shard, e.g. "ap"
 
     @property
     def acs(self) -> int:
@@ -891,6 +964,8 @@ def parse_stored_match(raw: dict) -> StoredMatch:
         leg=_as_int(shots.get("leg")),
         damage_made=_as_int(damage.get("made")),
         damage_received=_as_int(damage.get("received")),
+        cluster=meta.get("cluster") or "",
+        region=meta.get("region") or "",
     )
 
 
@@ -906,7 +981,7 @@ def get_stored_matches(
     """Paginated lifetime history for per-act career stats. Walks up to
     `max_pages` pages (newest first), stops early on a short page. Cached."""
     key_mode = mode or "all"
-    cache_key = f"riot:stored:v2:{game_name.lower()}#{tag_line.lower()}:{key_mode}:{max_pages}x{page_size}"  # v2: act_name
+    cache_key = f"riot:stored:v3:{game_name.lower()}#{tag_line.lower()}:{key_mode}:{max_pages}x{page_size}"  # v3: cluster/region
     cached = cache.get(cache_key)
     if cached is not None:
         return [StoredMatch(**m) for m in cached]
@@ -933,12 +1008,50 @@ def get_stored_matches(
     return out
 
 
+def get_stored_matches_page(
+    region: str,
+    game_name: str,
+    tag_line: str,
+    *,
+    mode: str | None = None,
+    page: int = 1,
+    size: int = 20,
+) -> list[StoredMatch]:
+    """One page of lifetime history, for the deep "load more" match browser.
+
+    Unlike `get_stored_matches` (which always walks from page 1 for a
+    career/backfill rollup), this fetches exactly the requested page — each
+    page is its own cache entry, so paging forward never re-fetches earlier
+    pages. This is how the Matches tab reaches games older than the ~20 most
+    recent, since the detailed v4 match endpoint (`get_matches`) is hard
+    capped there by HenrikDev and has no pagination at all.
+    """
+    key_mode = mode or "all"
+    cache_key = f"riot:storedpage:v1:{game_name.lower()}#{tag_line.lower()}:{key_mode}:{page}x{size}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return [StoredMatch(**m) for m in cached]
+
+    query = f"?size={size}&page={page}" + (f"&mode={mode}" if mode else "")
+    try:
+        data = _get(f"/valorant/v1/stored-matches/{region}/{game_name}/{tag_line}{query}")
+    except ProviderError as exc:
+        if exc.not_found:
+            return []
+        raise
+    rows = data if isinstance(data, list) else []
+    out = [parse_stored_match(r) for r in rows]
+    cache.set(cache_key, [m.__dict__ for m in out], STORED_CACHE_TTL)
+    return out
+
+
 # Redis caches plain JSON, so Match (with nested dataclasses) is flattened to
 # dicts on the way in and rebuilt on the way out.
 def _match_to_cache(m: Match) -> dict:
     d = m.__dict__.copy()
     d["teams"] = [t.__dict__ for t in m.teams]
     d["players"] = [p.__dict__ for p in m.players]
+    d["rounds_detail"] = [r.__dict__ for r in m.rounds_detail]
     return d
 
 
@@ -946,4 +1059,5 @@ def _match_from_cache(d: dict) -> Match:
     d = dict(d)
     d["teams"] = [MatchTeam(**t) for t in d.get("teams", [])]
     d["players"] = [MatchPlayer(**p) for p in d.get("players", [])]
+    d["rounds_detail"] = [RoundInfo(**r) for r in d.get("rounds_detail", [])]
     return Match(**d)

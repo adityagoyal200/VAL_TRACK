@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type CSSProperties, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -41,12 +41,14 @@ import { fetchRankIcons, rankIconKey } from '@/api/valorantAssets'
 import { AccuracyFigure } from './AccuracyFigure'
 import { CareerTab } from './CareerTab'
 import { CollectionTab } from './CollectionTab'
+import { CombatDNAPanel } from './CombatDNA'
 import { EncountersTab } from './EncountersTab'
+import { ScoreGauge, useCountUp } from './HeroFx'
 import { MatchDetailDialog } from './MatchDetailDialog'
 import { RatingBadge, RatingSparkline, ScoreLegend } from './RatingBadge'
 import { RRChart } from './RRChart'
 import { SquadTab } from './SquadTab'
-import { Panel, RankNumber, SectionHeader, StatTile } from './ui'
+import { ACCENTS, Panel, RankNumber, SectionHeader, type Accent } from './ui'
 import {
   LOSS_COLOR,
   WIN_COLOR,
@@ -194,7 +196,7 @@ export function TrackerPage({ subject = null }: { subject?: TrackerSubject } = {
       )}
 
       {linkMissing && (
-        <div className="clip-bevel animate-rise mt-10 border border-border bg-card p-8 text-center">
+        <div className="clip-bevel glass animate-rise mt-10 border border-border p-8 text-center">
           <p className="font-heading text-lg font-semibold">No Riot account linked</p>
           <p className="mt-2 text-sm text-muted-foreground">
             {apiErrorMessage(overview.error, 'Link and verify a Riot account to see your stats.')}
@@ -220,7 +222,7 @@ export function TrackerPage({ subject = null }: { subject?: TrackerSubject } = {
           />
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-            <nav className="clip-bevel-sm flex flex-wrap gap-1 border border-border/70 bg-card/40 p-1">
+            <nav className="clip-bevel-sm glass flex flex-wrap gap-1 border border-border/70 p-1">
               {tabs.map((t) => {
                 const Icon = t.icon
                 const active = tab === t.id
@@ -320,16 +322,32 @@ function ProfileHero({
   const peakKey = rankIconKey(profile.peak_tier, profile.peak_division)
 
   return (
-    <section className="clip-bevel animate-rise relative mt-6 overflow-hidden border border-border bg-card">
+    <section className="clip-bevel animate-rise group relative mt-6 overflow-hidden border border-border bg-card shadow-[0_24px_70px_-30px_rgba(0,0,0,0.9)]">
       {profile.card_wide && (
         <img
           src={profile.card_wide}
           alt=""
           aria-hidden
-          className="absolute inset-0 h-full w-full object-cover object-[center_30%] opacity-35"
+          className="animate-drift-slow absolute inset-0 h-full w-full scale-110 object-cover object-[center_30%] opacity-40"
         />
       )}
-      <div className="tactical-grid relative bg-gradient-to-r from-card via-card/80 to-card/30 p-5">
+      {/* legibility scrim over the banner art */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card via-card/85 to-card/40"
+        aria-hidden
+      />
+      {/* living aurora mesh — red top-right, cyan bottom-left, slowly drifting */}
+      <div
+        className="aurora animate-drift"
+        style={{ top: '-40%', right: '-8%', width: '42%', height: '180%', opacity: 0.4, background: 'radial-gradient(closest-side, #ff4655, transparent)' }}
+        aria-hidden
+      />
+      <div
+        className="aurora animate-drift-slow"
+        style={{ bottom: '-50%', left: '22%', width: '46%', height: '190%', opacity: 0.32, background: 'radial-gradient(closest-side, #00e5c0, transparent)' }}
+        aria-hidden
+      />
+      <div className="tactical-grid tactical-sheen relative p-5 sm:p-6">
         <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
           <div className="flex items-center gap-4">
             {profile.card_small && (
@@ -337,12 +355,12 @@ function ProfileHero({
                 src={profile.card_small}
                 alt=""
                 aria-hidden
-                className="clip-bevel-sm h-16 w-16 border border-border object-cover"
+                className="clip-bevel-sm h-16 w-16 border border-white/15 object-cover shadow-[0_0_26px_-6px_rgba(0,229,192,0.55)]"
               />
             )}
             <div>
               <div className="flex flex-wrap items-baseline gap-1.5">
-                <span className="font-heading text-3xl font-bold tracking-wide">
+                <span className="font-heading text-3xl font-bold tracking-wide text-foreground [text-shadow:0_0_24px_rgba(255,255,255,0.18)] sm:text-4xl">
                   {profile.riot_game_name}
                 </span>
                 <span className="text-lg text-muted-foreground">#{profile.riot_tag_line}</span>
@@ -404,7 +422,7 @@ function ProfileHero({
             {profile.seasons.slice(0, 6).map((s) => (
               <div
                 key={s.season}
-                className="clip-bevel-sm border border-border/70 bg-background/60 px-2.5 py-1 text-[11px]"
+                className="clip-bevel-sm hud-tile px-2.5 py-1 text-[11px]"
                 title={`${s.wins}W / ${s.games} games`}
               >
                 <span className="uppercase text-muted-foreground">{s.season}</span>{' '}
@@ -419,6 +437,12 @@ function ProfileHero({
           </div>
         )}
       </div>
+      {/* lit bottom edge — the hero's signature red→cyan HUD line */}
+      <div
+        className="animate-pulse-glow pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-px"
+        style={{ background: 'linear-gradient(90deg, transparent, #ff4655 30%, #00e5c0 70%, transparent)' }}
+        aria-hidden
+      />
     </section>
   )
 }
@@ -482,19 +506,29 @@ function TrackerScore({
   lifetimeRating: number | null
   lifetimeGames: number
 }) {
-  const { grade, color, ink, label } = ratingTier(rating)
   const lifetimeTier = ratingTier(lifetimeRating)
   return (
-    <div className="flex items-end gap-5">
-      {lifetimeGames > 0 && (
-        <div className="flex flex-col items-end border-r border-border/60 pr-5">
-          <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-            Overall Score
+    <div className="flex items-center gap-5">
+      {/* the hero centerpiece: an animated radial score dial */}
+      <div className="flex flex-col items-center">
+        <ScoreGauge value={rating} label="Recent Form" />
+        {form.length >= 2 ? (
+          <div className="mt-2 flex items-center gap-1.5">
+            <RatingSparkline values={form} width={126} height={24} />
+            <span className="text-[10px] text-muted-foreground">last {form.length}</span>
           </div>
-          <div className="mt-0.5 flex items-baseline gap-1">
+        ) : (
+          <div className="mt-2 text-[11px] text-muted-foreground">{games} games</div>
+        )}
+      </div>
+
+      {lifetimeGames > 0 && (
+        <div className="flex flex-col items-center self-stretch justify-center border-l border-border/60 pl-5">
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Overall</div>
+          <div className="mt-1 flex items-baseline gap-1">
             <span
-              className="font-heading text-3xl leading-none font-bold tabular-nums"
-              style={{ color: lifetimeTier.color }}
+              className="font-heading text-4xl leading-none font-bold tabular-nums"
+              style={{ color: lifetimeTier.color, textShadow: `0 0 24px ${lifetimeTier.color}44` }}
             >
               {ratingLabel(lifetimeRating)}
             </span>
@@ -502,47 +536,17 @@ function TrackerScore({
           </div>
           {lifetimeRating != null && (
             <span
-              className="mt-1.5 inline-flex items-center gap-1 rounded-[3px] px-2 py-0.5 text-xs font-bold shadow-sm"
-              style={{ color: lifetimeTier.ink, backgroundColor: lifetimeTier.color }}
+              className="mt-2 rounded-[3px] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide"
+              style={{ color: lifetimeTier.ink, backgroundColor: lifetimeTier.color, boxShadow: `0 0 16px -4px ${lifetimeTier.color}` }}
             >
-              <span>{lifetimeTier.grade}</span>
+              {lifetimeTier.grade} · {lifetimeTier.label}
             </span>
           )}
           <div className="mt-1.5 text-[10px] text-muted-foreground">
-            {lifetimeGames.toLocaleString()} games lifetime
+            {lifetimeGames.toLocaleString()} games
           </div>
         </div>
       )}
-
-      <div className="flex flex-col items-end">
-        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-          Recent Form
-        </div>
-        <div className="mt-0.5 flex items-baseline gap-1">
-          <span className="font-heading text-4xl leading-none font-bold tabular-nums" style={{ color }}>
-            {ratingLabel(rating)}
-          </span>
-          <span className="text-sm font-medium text-muted-foreground">/10</span>
-        </div>
-        {rating != null && (
-          <span
-            className="mt-1.5 inline-flex items-center gap-1 rounded-[3px] px-2 py-0.5 text-xs font-bold shadow-sm"
-            style={{ color: ink, backgroundColor: color }}
-          >
-            <span>{grade}</span>
-            <span className="opacity-80">·</span>
-            <span className="uppercase tracking-wide">{label}</span>
-          </span>
-        )}
-        {form.length >= 2 ? (
-          <div className="mt-1.5 flex items-center gap-1.5 text-muted-foreground">
-            <RatingSparkline values={form} width={104} height={26} />
-            <span className="text-[10px] text-muted-foreground">last {form.length}</span>
-          </div>
-        ) : (
-          <div className="mt-1 text-[11px] text-muted-foreground">{games} games</div>
-        )}
-      </div>
     </div>
   )
 }
@@ -565,6 +569,10 @@ function OverviewTab({
   return (
     <div className="animate-rise">
       <StatRow stats={stats} />
+
+      <div className="mt-4">
+        <CombatDNAPanel stats={stats} />
+      </div>
 
       <div className="mt-4">
         <ScoreLegend />
@@ -614,21 +622,90 @@ function OverviewTab({
   )
 }
 
+/** An oversized "hero" stat — the marquee numbers (Win Rate / K/D / ACS) blown
+ * up with a count-up animation and, for win rate, a fill bar. Editorial scale +
+ * negative space is what separates this from a uniform tile grid. */
+function HeroStat({
+  label,
+  value,
+  decimals = 0,
+  suffix = '',
+  sub,
+  accent,
+  numColor,
+  bar,
+  className = '',
+}: {
+  label: string
+  value: number
+  decimals?: number
+  suffix?: string
+  sub: string
+  accent?: Accent
+  numColor?: string
+  bar?: number
+  className?: string
+}) {
+  const n = useCountUp(value, { duration: 1400, decimals })
+  const color = numColor ?? (accent ? ACCENTS[accent] : undefined)
+  const shown = decimals ? n.toFixed(decimals) : Math.round(n).toLocaleString()
+  return (
+    <Panel accent={accent} className={`flex min-h-[128px] flex-col justify-between ${className}`}>
+      <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+        {label}
+      </span>
+      <div>
+        <span
+          className="font-heading text-5xl font-bold leading-none tabular-nums sm:text-6xl"
+          style={color ? { color, textShadow: `0 0 34px ${color}44` } : undefined}
+        >
+          {shown}
+          {suffix && <span className="text-3xl align-top">{suffix}</span>}
+        </span>
+        {bar != null && (
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]">
+            <div
+              className="h-full rounded-full transition-[width] duration-1000 ease-out"
+              style={{
+                width: `${Math.max(0, Math.min(100, bar))}%`,
+                backgroundColor: color ?? '#fff',
+                boxShadow: color ? `0 0 10px -1px ${color}` : undefined,
+              }}
+            />
+          </div>
+        )}
+        <div className="mt-2 text-xs text-muted-foreground">{sub}</div>
+      </div>
+    </Panel>
+  )
+}
+
+/** A dense inline stat chip for the secondary strip under the hero stats. */
+function CompactStat({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: string }) {
+  return (
+    <div
+      className="glass clip-bevel-sm hover-lift flex items-baseline gap-2 border border-border px-3 py-2 hover:border-white/25"
+      title={sub}
+    >
+      <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span
+        className="font-heading text-sm font-bold tabular-nums"
+        style={accent ? { color: accent, textShadow: `0 0 14px ${accent}44` } : undefined}
+      >
+        {value}
+      </span>
+    </div>
+  )
+}
+
 function StatRow({ stats }: { stats: OverviewStats }) {
+  const win = stats.win_rate >= 50
   const aces = stats.best_kill_round >= 5
-  const tiles: { label: string; value: string; sub: string; accent?: string }[] = [
-    {
-      label: 'Win Rate',
-      value: `${stats.win_rate}%`,
-      sub: `${stats.wins}W · ${stats.losses}L${stats.draws ? ` · ${stats.draws}D` : ''}`,
-      accent: stats.win_rate >= 50 ? WIN_COLOR : LOSS_COLOR,
-    },
-    { label: 'K/D', value: stats.kd.toFixed(2), sub: `${stats.kills}/${stats.deaths}/${stats.assists}` },
+  const secondary: { label: string; value: string; sub: string; accent?: string }[] = [
     { label: 'KDA', value: stats.kda.toFixed(2), sub: `${stats.avg_kills} kills / game` },
-    { label: 'Avg ACS', value: String(stats.avg_acs), sub: `${stats.matches_counted} games` },
     { label: 'ADR', value: stats.adr.toFixed(0), sub: `${stats.damage_dealt.toLocaleString()} dmg total` },
     { label: 'KAST', value: `${stats.kast}%`, sub: 'kill/assist/survive/trade' },
-    { label: 'Headshot %', value: `${stats.hs_percent}%`, sub: 'per match avg' },
+    { label: 'HS%', value: `${stats.hs_percent}%`, sub: 'per match avg' },
     {
       label: 'First Bloods',
       value: String(stats.first_bloods),
@@ -641,12 +718,7 @@ function StatRow({ stats }: { stats: OverviewStats }) {
       sub: aces ? `best round: ${stats.best_kill_round}K 🔥` : `best round: ${stats.best_kill_round}K`,
     },
     { label: 'Spike', value: String(stats.plants + stats.defuses), sub: `${stats.plants} plants · ${stats.defuses} defuses` },
-    {
-      label: 'Match MVPs',
-      value: String(stats.mvps),
-      sub: `${stats.team_mvps} team MVPs`,
-      accent: stats.mvps > 0 ? '#e7c15a' : undefined,
-    },
+    { label: 'MVPs', value: String(stats.mvps), sub: `${stats.team_mvps} team MVPs`, accent: stats.mvps > 0 ? ACCENTS.gold : undefined },
     {
       label: 'Streak',
       value: streakLabel(stats.current_streak) || '—',
@@ -655,10 +727,28 @@ function StatRow({ stats }: { stats: OverviewStats }) {
     },
   ]
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-      {tiles.map((t) => (
-        <StatTile key={t.label} label={t.label} value={t.value} sub={t.sub} accent={t.accent} />
-      ))}
+    <div>
+      <div className="grid gap-3 lg:grid-cols-4">
+        <HeroStat
+          className="animate-pop lg:col-span-2"
+          label="Win Rate"
+          value={stats.win_rate}
+          suffix="%"
+          sub={`${stats.wins}W · ${stats.losses}L${stats.draws ? ` · ${stats.draws}D` : ''}`}
+          accent={win ? 'cyan' : 'red'}
+          numColor={win ? WIN_COLOR : LOSS_COLOR}
+          bar={stats.win_rate}
+        />
+        <HeroStat className="animate-pop" label="K / D" value={stats.kd} decimals={2} sub={`${stats.kills} / ${stats.deaths} / ${stats.assists}`} accent="violet" />
+        <HeroStat className="animate-pop" label="Avg ACS" value={stats.avg_acs} sub={`${stats.matches_counted} games`} accent="gold" />
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {secondary.map((s, i) => (
+          <div key={s.label} className="animate-pop" style={{ '--i': i } as CSSProperties}>
+            <CompactStat label={s.label} value={s.value} sub={s.sub} accent={s.accent} />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -725,7 +815,7 @@ function TopAgents({ agents }: { agents: AgentStat[] }) {
       {agents.length === 0 && <p className="text-sm text-muted-foreground">No data yet.</p>}
       <div className="space-y-2.5">
         {agents.slice(0, 5).map((a, i) => (
-          <div key={a.agent} className="group flex items-center gap-3 rounded-sm px-1 py-0.5 -mx-1 transition-colors hover:bg-white/5">
+          <div key={a.agent} className="hud-row [--row-accent:#a374ff] group -mx-1 flex items-center gap-3 rounded-sm px-2 py-1">
             <RankNumber n={i + 1} />
             {a.agent_image ? (
               <img src={a.agent_image} alt={a.agent} className="h-9 w-9 rounded-sm ring-1 ring-white/10" loading="lazy" />
@@ -762,7 +852,7 @@ function TopWeapons({ weapons }: { weapons: WeaponStat[] }) {
       )}
       <div className="space-y-2.5">
         {weapons.slice(0, 5).map((w) => (
-          <div key={w.weapon_id || w.name} className="flex items-center gap-3">
+          <div key={w.weapon_id || w.name} className="hud-row [--row-accent:#ff4655] -mx-1 flex items-center gap-3 rounded-sm px-2 py-1">
             <div className="flex h-8 w-16 shrink-0 items-center justify-center">
               {w.image ? (
                 <img
@@ -834,12 +924,14 @@ function AgentsTab({ agents }: { agents: AgentStat[] }) {
   if (agents.length === 0)
     return <p className="py-10 text-center text-sm text-muted-foreground">No agent data yet.</p>
   return (
-    <div className="clip-bevel animate-rise relative overflow-hidden border border-border bg-gradient-to-br from-card to-card/60">
+    <div className="clip-bevel glass animate-rise relative overflow-hidden border border-border">
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px"
+        className="animate-pulse-glow pointer-events-none absolute inset-x-0 top-0 z-[2] h-px"
         style={{ background: 'linear-gradient(90deg, transparent 4%, #a374ff 40%, #a374ff 60%, transparent 96%)' }}
         aria-hidden
       />
+      <span className="pointer-events-none absolute left-0 top-0 z-[2] h-3 w-3 border-l-2 border-t-2 border-[#a374ff]/70" aria-hidden />
+      <span className="pointer-events-none absolute bottom-0 right-0 z-[2] h-3 w-3 border-b-2 border-r-2 border-[#a374ff]/70" aria-hidden />
       <div className="overflow-x-auto">
       <table className="w-full min-w-[780px] text-sm">
         <thead>
@@ -860,7 +952,7 @@ function AgentsTab({ agents }: { agents: AgentStat[] }) {
         </thead>
         <tbody>
           {agents.map((a, i) => (
-            <tr key={a.agent} className="border-t border-border/40 transition-colors hover:bg-white/[0.03]">
+            <tr key={a.agent} className="hud-row [--row-accent:#a374ff] border-t border-border/40">
               <td className="px-4 py-2.5">
                 <RankNumber n={i + 1} />
               </td>
@@ -908,7 +1000,7 @@ function MapsTab({ maps }: { maps: MapStat[] }) {
       {maps.map((m) => (
         <div
           key={m.map_name}
-          className="clip-bevel group relative overflow-hidden border border-border bg-card transition-colors duration-200 hover:border-white/20"
+          className="clip-bevel hover-lift group relative overflow-hidden border border-border bg-card transition-colors duration-200 hover:border-white/20"
         >
           {m.map_image && (
             <img
@@ -963,7 +1055,7 @@ function ArsenalTab({ weapons }: { weapons: WeaponStat[] }) {
       {weapons.map((w, i) => (
         <div
           key={w.weapon_id || w.name}
-          className="clip-bevel group relative overflow-hidden border border-border bg-gradient-to-b from-card to-background/40 p-4 transition-colors duration-200 hover:border-primary/40"
+          className="clip-bevel glass hover-lift group relative overflow-hidden border border-border p-4 transition-colors duration-200 hover:border-primary/40"
         >
           <div
             className="pointer-events-none absolute inset-x-0 top-0 h-px"
@@ -1009,7 +1101,7 @@ function MatchRow({ match, onOpen }: { match: MatchSummary; onOpen: () => void }
   return (
     <button
       onClick={onOpen}
-      className="clip-bevel-sm group relative flex w-full items-center gap-3 overflow-hidden border border-border bg-gradient-to-r from-card to-card/70 p-3 text-left transition-all duration-200 hover:border-white/25"
+      className="clip-bevel-sm glass hover-lift group relative flex w-full items-center gap-3 overflow-hidden border border-border p-3 text-left transition-all duration-200 hover:border-white/25"
     >
       <div
         className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
@@ -1125,7 +1217,7 @@ function PlayerSearch() {
         onChange={(e) => setQ(e.target.value)}
         placeholder="Search Riot ID · name#tag"
         aria-label="Search a Riot ID"
-        className="clip-bevel-sm h-9 w-52 border border-border bg-card pr-3 pl-8 text-sm outline-none placeholder:text-muted-foreground focus:border-primary"
+        className="clip-bevel-sm glass h-9 w-52 border border-border pr-3 pl-8 text-sm outline-none placeholder:text-muted-foreground focus:border-primary"
       />
     </form>
   )

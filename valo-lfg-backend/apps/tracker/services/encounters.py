@@ -25,6 +25,10 @@ class EncounteredPlayer:
     losses: int = 0
     acts: set = field(default_factory=set)
     last_seen: str = ""  # ISO started_at of the most recent shared match
+    first_seen: str = ""  # ISO started_at of the *earliest* shared match across
+    #                       ALL acts — when this account first showed up with the
+    #                       subject (as close as we can get to "when they met")
+    first_seen_act: str = ""  # season/act name of that earliest shared match
 
     @property
     def win_rate(self) -> float:
@@ -45,6 +49,8 @@ class PartyGroup:
     games: int = 0
     acts: set = field(default_factory=set)
     last_seen: str = ""
+    first_seen: str = ""  # ISO started_at of the first game this exact group appeared together
+    first_seen_act: str = ""  # season/act name of that first game
 
     @property
     def label(self) -> str:
@@ -113,6 +119,9 @@ def build_encounters(subject_puuid: str, *, min_games: int = 2, top_n: int = 25)
             if not entry.last_seen or started_at > entry.last_seen:
                 entry.last_seen = started_at
                 entry.name, entry.tag, entry.agent_image = row.name, row.tag, row.agent_image
+            if started_at and (not entry.first_seen or started_at < entry.first_seen):
+                entry.first_seen = started_at
+                entry.first_seen_act = act
             if subject_won is True:
                 entry.wins += 1
             elif subject_won is False:
@@ -151,6 +160,9 @@ def build_encounters(subject_puuid: str, *, min_games: int = 2, top_n: int = 25)
                 if not grp.last_seen or started_at > grp.last_seen:
                     grp.last_seen = started_at
                     grp.names = _member_dicts(key_members)
+                if started_at and (not grp.first_seen or started_at < grp.first_seen):
+                    grp.first_seen = started_at
+                    grp.first_seen_act = act
 
     result = Encounters()
     result.matches_analysed = len(by_match)

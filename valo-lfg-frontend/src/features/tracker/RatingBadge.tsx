@@ -22,17 +22,27 @@ export function RatingBadge({
   const unrated = value == null
   const pad =
     size === 'lg'
-      ? 'px-2.5 py-1 text-xl gap-1.5'
+      ? 'px-3 py-1 text-xl gap-1.5'
       : size === 'md'
-        ? 'px-2 py-0.5 text-base gap-1'
-        : 'px-1.5 py-0.5 text-sm gap-1'
+        ? 'px-2.5 py-0.5 text-base gap-1.5'
+        : 'px-2 py-0.5 text-sm gap-1'
+  // A glossy sheen + tier-colored glow + inset hairline, layered over the flat
+  // tier color — reads as a lit chip rather than a plain painted rectangle.
+  // The gradient is tint-agnostic (white→dark overlay) so it flatters any tier.
+  const litStyle = {
+    color: ink,
+    backgroundColor: color,
+    backgroundImage:
+      'linear-gradient(140deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 42%, rgba(0,0,0,0.22))',
+    boxShadow: `0 1px 2px rgba(0,0,0,0.35), 0 0 12px -3px ${color}, inset 0 0 0 1px rgba(255,255,255,0.16)`,
+  }
   return (
     <span
-      className={`inline-flex items-center rounded-[3px] font-heading font-bold tabular-nums shadow-sm ${pad}`}
+      className={`inline-flex items-center rounded-[3px] font-heading font-bold tabular-nums ${pad}`}
       style={
         unrated
-          ? { color: '#9aa2ad', backgroundColor: '#ffffff10', border: '1px solid #ffffff1f' }
-          : { color: ink, backgroundColor: color }
+          ? { color: '#9aa2ad', backgroundColor: '#ffffff10', boxShadow: 'inset 0 0 0 1px #ffffff1f' }
+          : litStyle
       }
       title={
         unrated
@@ -43,8 +53,8 @@ export function RatingBadge({
       {ratingLabel(value)}
       {showGrade && !unrated && (
         <span
-          className="rounded-[2px] px-1 text-[0.7em] font-bold"
-          style={{ backgroundColor: `${ink}22` }}
+          className="-mr-0.5 ml-0.5 flex items-center rounded-[2px] px-1.5 text-[0.7em] font-bold leading-none"
+          style={{ backgroundColor: 'rgba(0,0,0,0.22)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.18)' }}
         >
           {grade}
         </span>
@@ -81,18 +91,36 @@ export function ScoreLegend() {
         A personal, self-improvement measure of{' '}
         <span className="font-semibold text-foreground">how you played each game</span>, win or lose
         — blending damage (ADR), impact (KAST), efficiency (KDA), opening duels and multikills,
-        weighted so utility and survival count too, not just kills. An average game is about{' '}
-        <span className="font-semibold text-foreground">5.0</span>. It’s a recent-form measure to
-        help you improve — not an official rank or matchmaking rating.
+        weighted so utility and survival count too, not just kills. An average game lands around{' '}
+        <span className="font-semibold text-foreground">5.0 — a solid B</span>; carry games climb
+        into A/S. It’s a recent-form measure to help you improve — not an official rank or
+        matchmaking rating.
       </p>
 
-      {/* visual 0–10 scale */}
-      <div className="mt-4">
-        <div className="h-2.5 w-full rounded-full" style={{ background: gradient }} />
-        <div className="mt-1 flex justify-between text-[11px] font-medium text-muted-foreground">
-          <span>0 · Building</span>
-          <span>5 · Average</span>
-          <span>10 · Elite</span>
+      {/* visual 0–10 scale, with each grade's letter pinned at its band floor */}
+      <div className="mt-5">
+        <div className="relative">
+          <div className="h-2.5 w-full rounded-full" style={{ background: gradient }} />
+          {RATING_TIERS.map((t) => (
+            <span
+              key={t.grade}
+              className="absolute top-1/2 h-3.5 w-px -translate-y-1/2"
+              style={{ left: `${(t.min / 10) * 100}%`, backgroundColor: 'rgba(0,0,0,0.35)' }}
+            />
+          ))}
+        </div>
+        <div className="relative mt-1 h-4 text-[11px] font-semibold tabular-nums text-muted-foreground">
+          {RATING_TIERS.map((t, i) => (
+            <span
+              key={t.grade}
+              className="absolute -translate-x-1/2"
+              style={{ left: `${(t.min / 10) * 100}%`, color: t.color }}
+              title={`${t.label} · ${tierRange(i)}`}
+            >
+              {t.grade}
+            </span>
+          ))}
+          <span className="absolute right-0 translate-x-0 text-muted-foreground">10</span>
         </div>
       </div>
 
@@ -101,11 +129,17 @@ export function ScoreLegend() {
         {RATING_TIERS.map((t, i) => (
           <div
             key={t.grade}
-            className="flex items-center gap-2 rounded-sm border border-border/60 bg-background/40 px-2.5 py-2"
+            className="flex items-center gap-2 rounded-sm border border-border/60 bg-background/40 px-2.5 py-2 transition-colors hover:border-white/20"
           >
             <span
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[3px] font-heading text-sm font-bold shadow-sm"
-              style={{ color: t.ink, backgroundColor: t.color }}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[3px] font-heading text-sm font-bold"
+              style={{
+                color: t.ink,
+                backgroundColor: t.color,
+                backgroundImage:
+                  'linear-gradient(140deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 42%, rgba(0,0,0,0.22))',
+                boxShadow: `0 0 12px -3px ${t.color}, inset 0 0 0 1px rgba(255,255,255,0.16)`,
+              }}
             >
               {t.grade}
             </span>

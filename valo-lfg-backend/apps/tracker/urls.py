@@ -6,6 +6,11 @@ urlpatterns = [
     path("tracker/me/overview/", views.TrackerOverviewView.as_view(), name="tracker-overview"),
     path("tracker/me/matches/", views.TrackerMatchesView.as_view(), name="tracker-matches"),
     path(
+        "tracker/me/matches/history/",
+        views.TrackerMatchHistoryView.as_view(),
+        name="tracker-match-history",
+    ),
+    path(
         "tracker/me/matches/<str:match_id>/",
         views.TrackerMatchDetailView.as_view(),
         name="tracker-match-detail",
@@ -40,6 +45,11 @@ urlpatterns = [
         "tracker/<str:name>/<str:tag>/overview/",
         views.PublicOverviewView.as_view(),
         name="tracker-public-overview",
+    ),
+    path(
+        "tracker/<str:name>/<str:tag>/matches/history/",
+        views.PublicMatchHistoryView.as_view(),
+        name="tracker-public-match-history",
     ),
     path(
         "tracker/<str:name>/<str:tag>/matches/<str:match_id>/",

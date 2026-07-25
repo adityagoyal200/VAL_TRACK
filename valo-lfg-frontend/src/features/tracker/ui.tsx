@@ -1,12 +1,11 @@
-import type { CSSProperties, ReactNode } from 'react'
+import type { CSSProperties, MouseEvent, ReactNode } from 'react'
 
 /**
- * Shared tactical-panel primitives for the tracker. Every tab used to hand-roll
- * its own `clip-bevel border border-border bg-card p-4` box + bare `<h2>` —
- * consistent but flat. These give every panel a lit accent edge, corner
- * brackets on the two square corners (the bevel already cuts the other two),
- * and a shared header/stat-tile language so the whole tracker reads as one
- * HUD instead of a stack of identical grey cards.
+ * Shared tactical-panel primitives for the tracker. Every tab renders through
+ * these, so the whole app reads as one immersive HUD rather than a stack of
+ * grey cards. Each panel is a frosted-glass surface (blurs the WebGL/ambient
+ * backdrop behind it) with a lit accent edge, glowing corner brackets, a
+ * cursor-tracked spotlight, and a sheen that sweeps on hover.
  */
 
 export const ACCENTS = {
@@ -18,35 +17,64 @@ export const ACCENTS = {
 
 export type Accent = keyof typeof ACCENTS
 
+/** Track the pointer so the panel's `.spotlight` halo follows the cursor. */
+function trackSpot(e: MouseEvent<HTMLElement>) {
+  const el = e.currentTarget
+  const r = el.getBoundingClientRect()
+  el.style.setProperty('--spot-x', `${e.clientX - r.left}px`)
+  el.style.setProperty('--spot-y', `${e.clientY - r.top}px`)
+}
+
+/** L-shaped glowing bracket for a panel corner (Valorant HUD framing). */
+function Bracket({ pos, color }: { pos: 'tl' | 'br'; color?: string }) {
+  const edges = pos === 'tl' ? 'left-0 top-0 border-l-2 border-t-2' : 'bottom-0 right-0 border-b-2 border-r-2'
+  return (
+    <span
+      className={`pointer-events-none absolute z-[2] h-3 w-3 ${edges}`}
+      style={{
+        borderColor: color ? `${color}b3` : 'rgba(255,255,255,0.22)',
+        filter: color ? `drop-shadow(0 0 4px ${color}99)` : undefined,
+      }}
+      aria-hidden
+    />
+  )
+}
+
 export function Panel({
   children,
   accent,
   className = '',
   padded = true,
+  spotlight = true,
   as: As = 'section',
 }: {
   children: ReactNode
   accent?: Accent
   className?: string
   padded?: boolean
+  spotlight?: boolean
   as?: 'section' | 'div'
 }) {
   const color = accent ? ACCENTS[accent] : undefined
   return (
     <As
-      className={`clip-bevel relative overflow-hidden border border-border bg-gradient-to-br from-card to-card/60 ${padded ? 'p-4' : ''} ${className}`}
+      onMouseMove={spotlight ? trackSpot : undefined}
+      className={`group/panel clip-bevel glass sheen-sweep relative overflow-hidden border border-border transition-colors duration-200 hover:border-white/15 ${padded ? 'p-4' : ''} ${className}`}
+      style={color ? ({ '--spot-color': `${color}1f` } as CSSProperties) : undefined}
     >
+      {/* lit accent edge — a soft breathing glow line along the top */}
       {color && (
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px"
-          style={{ background: `linear-gradient(90deg, transparent 4%, ${color} 40%, ${color} 60%, transparent 96%)` }}
+          className="animate-pulse-glow pointer-events-none absolute inset-x-0 top-0 z-[2] h-px"
+          style={{ background: `linear-gradient(90deg, transparent 4%, ${color} 42%, ${color} 58%, transparent 96%)` }}
           aria-hidden
         />
       )}
-      {/* corner ticks on the two square corners — the other two are already cut by clip-bevel */}
-      <span className="pointer-events-none absolute top-0 left-0 h-2.5 w-2.5 border-t border-l border-white/15" aria-hidden />
-      <span className="pointer-events-none absolute right-0 bottom-0 h-2.5 w-2.5 border-r border-b border-white/15" aria-hidden />
-      <div className="relative">{children}</div>
+      {spotlight && <div className="spotlight" aria-hidden />}
+      {/* glowing brackets on the two square corners (the bevel cuts the others) */}
+      <Bracket pos="tl" color={color} />
+      <Bracket pos="br" color={color} />
+      <div className="relative z-[3]">{children}</div>
     </As>
   )
 }
@@ -66,23 +94,36 @@ export function SectionHeader({
 }) {
   const color = ACCENTS[accent]
   return (
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <div className="flex items-center gap-2.5">
-        {icon && (
-          <span
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm border"
-            style={{ borderColor: `${color}55`, backgroundColor: `${color}17`, color }}
-            aria-hidden
-          >
-            {icon}
-          </span>
-        )}
-        <div className="min-w-0">
-          <h2 className="font-heading text-sm font-semibold tracking-wide">{title}</h2>
-          {kicker && <p className="truncate text-[11px] text-muted-foreground">{kicker}</p>}
+    <div className="mb-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          {icon && (
+            <span
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm border"
+              style={{
+                borderColor: `${color}66`,
+                backgroundColor: `${color}1f`,
+                color,
+                boxShadow: `0 0 14px -4px ${color}, inset 0 0 10px -6px ${color}`,
+              }}
+              aria-hidden
+            >
+              {icon}
+            </span>
+          )}
+          <div className="min-w-0">
+            <h2 className="font-heading text-sm font-semibold tracking-wide">{title}</h2>
+            {kicker && <p className="truncate text-[11px] text-muted-foreground">{kicker}</p>}
+          </div>
         </div>
+        {right}
       </div>
-      {right}
+      {/* lit divider rule under the header */}
+      <div
+        className="mt-2 h-px w-full"
+        style={{ background: `linear-gradient(90deg, ${color}80, ${color}12 32%, transparent 78%)` }}
+        aria-hidden
+      />
     </div>
   )
 }
@@ -100,26 +141,43 @@ export function StatTile({
   accent?: string
   icon?: ReactNode
 }) {
-  const glow: CSSProperties = accent
-    ? { color: accent, textShadow: `0 0 22px ${accent}4d` }
-    : {}
+  const glow: CSSProperties = accent ? { color: accent, textShadow: `0 0 22px ${accent}55` } : {}
   return (
-    <div className="clip-bevel-sm group relative overflow-hidden border border-border bg-gradient-to-b from-card to-background/50 p-3.5 transition-colors duration-200 hover:border-white/20">
+    <div
+      onMouseMove={trackSpot}
+      className="group/panel sheen-sweep hover-lift clip-bevel-sm glass relative overflow-hidden border border-border p-3.5 hover:border-white/25"
+      style={accent ? ({ '--spot-color': `${accent}26` } as CSSProperties) : undefined}
+    >
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/12 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 z-[2] h-px bg-gradient-to-r from-transparent via-white/12 to-transparent"
         aria-hidden
       />
-      <div className="flex items-start justify-between gap-1">
-        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
-        {icon && <span className="text-muted-foreground/40">{icon}</span>}
-      </div>
-      <div className="mt-1 font-heading text-2xl font-bold tabular-nums" style={glow}>
-        {value}
-      </div>
-      {sub && (
-        <div className="mt-0.5 truncate text-xs text-muted-foreground" title={sub}>
-          {sub}
+      <div className="spotlight" aria-hidden />
+      <div className="relative z-[3]">
+        <div className="flex items-start justify-between gap-1">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
+          {icon && (
+            <span className="text-muted-foreground/40 transition-colors group-hover/panel:text-muted-foreground/70">
+              {icon}
+            </span>
+          )}
         </div>
+        <div className="mt-1 font-heading text-2xl font-bold tabular-nums" style={glow}>
+          {value}
+        </div>
+        {sub && (
+          <div className="mt-0.5 truncate text-xs text-muted-foreground" title={sub}>
+            {sub}
+          </div>
+        )}
+      </div>
+      {/* accent baseline that lights up on hover */}
+      {accent && (
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-0.5 opacity-50 transition-opacity duration-200 group-hover/panel:opacity-100"
+          style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)`, boxShadow: `0 0 10px -1px ${accent}` }}
+          aria-hidden
+        />
       )}
     </div>
   )
@@ -135,6 +193,7 @@ export function RankNumber({ n }: { n: number }) {
         color: medal ?? 'var(--muted-foreground)',
         backgroundColor: medal ? `${medal}1a` : 'transparent',
         border: `1px solid ${medal ? `${medal}55` : 'var(--border)'}`,
+        boxShadow: medal ? `0 0 12px -3px ${medal}` : undefined,
       }}
       aria-hidden
     >

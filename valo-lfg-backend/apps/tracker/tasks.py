@@ -59,8 +59,11 @@ def backfill_encounter_history(self, job_id: int):
                 match = riot.get_match(job.region, match_id)
                 if ingest_match(match):
                     ingested += 1
-            except riot.ProviderError as exc:
-                logger.warning("encounter backfill: match %s failed: %s", match_id, exc)
+            except Exception as exc:  # noqa: BLE001 — one bad match must never abort the whole job
+                # Includes ProviderError (rate limit / not found) *and* DB errors
+                # like a mode whose team_id/field doesn't fit our columns. Skip
+                # this match, keep walking the rest of the history.
+                logger.warning("encounter backfill: match %s skipped: %r", match_id, exc)
             time.sleep(BACKFILL_SLEEP_SECONDS)
 
         job.done = i

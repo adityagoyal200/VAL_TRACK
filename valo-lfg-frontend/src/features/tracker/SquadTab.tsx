@@ -162,7 +162,7 @@ function Teammates({ mates }: { mates: Teammate[] }) {
       <SectionHeader icon={<UsersRound className="h-3.5 w-3.5" />} title="MOST PLAYED WITH" accent="cyan" />
       <div className="grid gap-2.5 sm:grid-cols-2">
         {mates.map((t, i) => (
-          <div key={t.puuid} className="group -mx-1 flex items-center gap-3 rounded-sm px-1 py-0.5 transition-colors hover:bg-white/5">
+          <div key={t.puuid} className="hud-row [--row-accent:#00e5c0] group -mx-1 flex items-center gap-3 rounded-sm px-2 py-1">
             <RankNumber n={i + 1} />
             {t.agent_image ? (
               <img src={t.agent_image} alt="" aria-hidden className="h-9 w-9 rounded-sm ring-1 ring-white/10" loading="lazy" />
@@ -212,7 +212,10 @@ function DuelList({
       )}
       <div className="space-y-2.5">
         {duelists.map((d, i) => (
-          <div key={d.puuid} className="group -mx-1 flex items-center gap-3 rounded-sm px-1 py-0.5 transition-colors hover:bg-white/5">
+          <div
+            key={d.puuid}
+            className={`hud-row group -mx-1 flex items-center gap-3 rounded-sm px-2 py-1 ${accent === 'red' ? '[--row-accent:#ff4655]' : '[--row-accent:#00e5c0]'}`}
+          >
             <RankNumber n={i + 1} />
             {d.agent_image ? (
               <img src={d.agent_image} alt="" aria-hidden className="h-9 w-9 rounded-sm ring-1 ring-white/10" loading="lazy" />
