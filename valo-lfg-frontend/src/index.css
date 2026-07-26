@@ -405,6 +405,16 @@
   }
 }
 
+@keyframes floatBob {
+  0%,
+  100% {
+    transform: translateY(-6%);
+  }
+  50% {
+    transform: translateY(6%);
+  }
+}
+
 @keyframes auroraDrift {
   0% {
     transform: translate3d(0, 0, 0) scale(1);

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, type CSSProperties, type FormEvent } from 'react'
+import { useState, type CSSProperties, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -43,7 +43,7 @@ import { CareerTab } from './CareerTab'
 import { CollectionTab } from './CollectionTab'
 import { AgentHoneycomb } from './AgentHoneycomb'
 import { CombatDNAPanel } from './CombatDNA'
-const HeroEmblem3D = lazy(() => import('./HeroEmblem3D').then((m) => ({ default: m.HeroEmblem3D })))
+import { HeroEmblem3D } from './HeroEmblem3D'
 import { EncountersTab } from './EncountersTab'
 import { RadarLoader, ScoreGauge, useCountUp } from './HeroFx'
 import { MatchDetailDialog } from './MatchDetailDialog'
@@ -330,31 +330,32 @@ function ProfileHero({
           src={profile.card_wide}
           alt=""
           aria-hidden
-          className="animate-drift-slow absolute inset-0 h-full w-full scale-110 object-cover object-[center_30%] opacity-40"
+          className="absolute inset-0 h-full w-full object-cover object-[center_28%] opacity-90"
         />
       )}
-      {/* legibility scrim over the banner art */}
+      {/* only enough gradient for text legibility — the card art stays visible */}
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card via-card/85 to-card/40"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card via-card/45 to-transparent"
         aria-hidden
       />
-      {/* living aurora mesh — red top-right, cyan bottom-left, slowly drifting */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-card/85 via-transparent to-transparent"
+        aria-hidden
+      />
+      {/* subtle aurora, kept low so it doesn't wash out the card */}
       <div
         className="aurora animate-drift"
-        style={{ top: '-40%', right: '-8%', width: '42%', height: '180%', opacity: 0.4, background: 'radial-gradient(closest-side, #ff4655, transparent)' }}
+        style={{ top: '-40%', right: '-8%', width: '40%', height: '170%', opacity: 0.18, background: 'radial-gradient(closest-side, #ff4655, transparent)' }}
         aria-hidden
       />
       <div
         className="aurora animate-drift-slow"
-        style={{ bottom: '-50%', left: '22%', width: '46%', height: '190%', opacity: 0.32, background: 'radial-gradient(closest-side, #00e5c0, transparent)' }}
+        style={{ bottom: '-50%', left: '20%', width: '44%', height: '180%', opacity: 0.14, background: 'radial-gradient(closest-side, #00e5c0, transparent)' }}
         aria-hidden
       />
-      <div className="tactical-grid tactical-sheen relative p-5 sm:p-6">
+      <div className="tactical-grid relative p-5 sm:p-6">
         <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
           <div className="flex items-center gap-4">
-            <Suspense fallback={<div className="h-24 w-24 shrink-0" />}>
-              <HeroEmblem3D color={tierColor(profile.current_tier) || '#ff4655'} className="h-24 w-24 shrink-0" />
-            </Suspense>
             {profile.card_small && (
               <img
                 src={profile.card_small}
@@ -383,6 +384,24 @@ function ProfileHero({
                   </span>
                 )}
               </div>
+              {stats.top_agents.length > 0 && (
+                <div className="mt-2.5 flex items-center gap-1.5">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Mains</span>
+                  {stats.top_agents.slice(0, 3).map(
+                    (a) =>
+                      a.agent_image && (
+                        <img
+                          key={a.agent}
+                          src={a.agent_image}
+                          alt={a.agent}
+                          title={`${a.agent} · ${a.games}g · ${a.win_rate}%`}
+                          loading="lazy"
+                          className="clip-bevel-sm h-8 w-8 border border-white/15 object-cover transition-transform hover:scale-110"
+                        />
+                      ),
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -394,19 +413,21 @@ function ProfileHero({
               lifetimeRating={lifetime?.avg_rating ?? null}
               lifetimeGames={lifetime?.matches ?? 0}
             />
-            <RankBadge
+            <RankEmblem
               label="Current"
               icon={icons?.byName[currentKey]?.large}
               tier={profile.current_tier}
               division={profile.current_division}
               rr={profile.current_rr}
               delta={profile.last_change}
+              color={tierColor(profile.current_tier) || '#ff4655'}
             />
-            <RankBadge
+            <RankEmblem
               label="Peak"
               icon={icons?.byName[peakKey]?.large}
               tier={profile.peak_tier}
               division={profile.peak_division}
+              color={tierColor(profile.peak_tier) || '#e7c15a'}
               dim
             />
             {profile.leaderboard_rank != null && (
@@ -452,13 +473,17 @@ function ProfileHero({
   )
 }
 
-function RankBadge({
+/** A rank shown as the 3D crystal-reticle emblem (the actual rank badge
+ * floating in a spinning HUD reticle) with its label + RR beneath. Used for
+ * both Current and Peak, so rank is never rendered as a flat duplicate. */
+function RankEmblem({
   label,
   icon,
   tier,
   division,
   rr,
   delta,
+  color,
   dim,
 }: {
   label: string
@@ -467,30 +492,24 @@ function RankBadge({
   division: number | null
   rr?: number | null
   delta?: number | null
+  color: string
   dim?: boolean
 }) {
-  const color = tierColor(tier)
   return (
-    <div className={`flex items-center gap-2.5 ${dim ? 'opacity-80' : ''}`}>
-      {icon && tier ? (
-        <img src={icon} alt="" aria-hidden className="h-12 w-12 drop-shadow" />
-      ) : (
-        <div className="h-12 w-12" />
-      )}
-      <div className="text-left">
-        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className="font-heading text-lg leading-tight font-bold" style={{ color: tier ? color : undefined }}>
-          {rankLabel(tier, division, rr)}
-        </div>
-        {delta != null && (
-          <div
-            className="text-xs font-semibold tabular-nums"
-            style={{ color: delta >= 0 ? WIN_COLOR : LOSS_COLOR }}
-          >
-            {signed(delta)} last game
-          </div>
-        )}
+    <div className={`flex flex-col items-center ${dim ? 'opacity-90' : ''}`}>
+      <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{label}</div>
+      <HeroEmblem3D color={color} rankIcon={tier ? icon : undefined} className="my-1 h-[76px] w-[76px]" />
+      <div className="font-heading text-xs leading-tight font-bold" style={{ color: tier ? color : undefined }}>
+        {rankLabel(tier, division, rr)}
       </div>
+      {delta != null && (
+        <div
+          className="text-[10px] font-semibold tabular-nums"
+          style={{ color: delta >= 0 ? WIN_COLOR : LOSS_COLOR }}
+        >
+          {signed(delta)} last
+        </div>
+      )}
     </div>
   )
 }
