@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type FormEvent } from 'react'
+import { lazy, Suspense, useState, type CSSProperties, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -43,6 +43,7 @@ import { CareerTab } from './CareerTab'
 import { CollectionTab } from './CollectionTab'
 import { AgentHoneycomb } from './AgentHoneycomb'
 import { CombatDNAPanel } from './CombatDNA'
+const HeroEmblem3D = lazy(() => import('./HeroEmblem3D').then((m) => ({ default: m.HeroEmblem3D })))
 import { EncountersTab } from './EncountersTab'
 import { RadarLoader, ScoreGauge, useCountUp } from './HeroFx'
 import { MatchDetailDialog } from './MatchDetailDialog'
@@ -351,6 +352,9 @@ function ProfileHero({
       <div className="tactical-grid tactical-sheen relative p-5 sm:p-6">
         <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
           <div className="flex items-center gap-4">
+            <Suspense fallback={<div className="h-24 w-24 shrink-0" />}>
+              <HeroEmblem3D color={tierColor(profile.current_tier) || '#ff4655'} className="h-24 w-24 shrink-0" />
+            </Suspense>
             {profile.card_small && (
               <img
                 src={profile.card_small}
