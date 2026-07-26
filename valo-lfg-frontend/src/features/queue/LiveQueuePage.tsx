@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Ban,
+  BarChart3,
   Check,
   Crown,
   Inbox,
@@ -107,6 +108,9 @@ export function LiveQueuePage() {
           <span className="hidden text-sm text-muted-foreground sm:inline">
             {user?.username}
           </span>
+          <Button variant="ghost" size="sm" render={<Link to="/tracker" />}>
+            <BarChart3 className="mr-1 h-4 w-4" /> Tracker
+          </Button>
           <Button variant="ghost" size="icon-sm" render={<Link to="/settings" />}>
             <Settings />
           </Button>

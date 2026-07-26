@@ -25,7 +25,7 @@ fn lockfile_path() -> PathBuf {
 }
 
 /// Parse `name:pid:port:password:protocol` -> (port, password).
-fn read_lock() -> Result<(u16, String), String> {
+pub(crate) fn read_lock() -> Result<(u16, String), String> {
     let raw = std::fs::read_to_string(lockfile_path())
         .map_err(|_| "Riot client isn't running (no lockfile).".to_string())?;
     let parts: Vec<&str> = raw.trim().split(':').collect();
@@ -36,7 +36,7 @@ fn read_lock() -> Result<(u16, String), String> {
     Ok((port, parts[3].to_string()))
 }
 
-fn basic_auth(password: &str) -> String {
+pub(crate) fn basic_auth(password: &str) -> String {
     format!("Basic {}", BASE64_STANDARD.encode(format!("riot:{password}")))
 }
 

@@ -3,7 +3,11 @@
 //! Pipeline: lockfile -> local API (tokens, identity, region) -> PVP MMR.
 //! Strictly read-only. Uses the OS TLS stack (SChannel via native-tls).
 
+pub mod collection;
+pub mod content;
+pub mod events;
 pub mod local;
+pub mod match_state;
 pub mod pvp;
 pub mod tiers;
 
