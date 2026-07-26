@@ -278,6 +278,17 @@
     transform: scaleY(1);
   }
 
+  /* Faint CRT scanlines — the "ops console" texture. Drop onto a container. */
+  .scanlines::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: repeating-linear-gradient(0deg, transparent 0 2px, oklch(0 0 0 / 0.16) 2px 3px);
+    opacity: 0.35;
+  }
+
   /* Hover lift for interactive cards. */
   .hover-lift {
     transition: transform 0.28s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.28s ease, border-color 0.2s ease;
@@ -379,6 +390,12 @@
   }
   50% {
     opacity: 1;
+  }
+}
+
+@keyframes radarSweep {
+  to {
+    transform: rotate(360deg);
   }
 }
 

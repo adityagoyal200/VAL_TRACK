@@ -42,6 +42,37 @@ export function useCountUp(
   return Math.round(val * f) / f
 }
 
+/** A rotating radar-sweep loader — the "scanning" state, instead of a spinner. */
+export function RadarLoader({ size = 88, label }: { size?: number; label?: string }) {
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <div className="relative" style={{ width: size, height: size }}>
+        <div className="absolute inset-0 rounded-full border border-cyan/25" />
+        <div className="absolute inset-[24%] rounded-full border border-cyan/20" />
+        <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-cyan/15" />
+        <div className="absolute top-1/2 left-0 h-px w-full -translate-y-1/2 bg-cyan/15" />
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: 'conic-gradient(from 0deg, transparent 300deg, rgba(0,229,192,0.4) 350deg, #00e5c0 360deg)',
+            animation: 'radarSweep 1.4s linear infinite',
+            WebkitMaskImage: 'radial-gradient(circle, #000 62%, transparent 63%)',
+            maskImage: 'radial-gradient(circle, #000 62%, transparent 63%)',
+          }}
+          aria-hidden
+        />
+        <div
+          className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan"
+          style={{ boxShadow: '0 0 10px #00e5c0' }}
+        />
+      </div>
+      {label && (
+        <span className="font-heading text-[11px] uppercase tracking-[0.3em] text-cyan/80">{label}</span>
+      )}
+    </div>
+  )
+}
+
 /**
  * The hero centerpiece: a radial 0–10 Tracker-Score dial. The gradient arc
  * sweeps from empty to the score on mount, the number counts up, and the whole

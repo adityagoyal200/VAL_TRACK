@@ -41,9 +41,10 @@ import { fetchRankIcons, rankIconKey } from '@/api/valorantAssets'
 import { AccuracyFigure } from './AccuracyFigure'
 import { CareerTab } from './CareerTab'
 import { CollectionTab } from './CollectionTab'
+import { AgentHoneycomb } from './AgentHoneycomb'
 import { CombatDNAPanel } from './CombatDNA'
 import { EncountersTab } from './EncountersTab'
-import { ScoreGauge, useCountUp } from './HeroFx'
+import { RadarLoader, ScoreGauge, useCountUp } from './HeroFx'
 import { MatchDetailDialog } from './MatchDetailDialog'
 import { RatingBadge, RatingSparkline, ScoreLegend } from './RatingBadge'
 import { RRChart } from './RRChart'
@@ -153,7 +154,7 @@ export function TrackerPage({ subject = null }: { subject?: TrackerSubject } = {
     !isPublic && overview.error instanceof ApiError && overview.error.status === 409
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="scanlines relative mx-auto max-w-6xl px-4 py-8">
       <header className="animate-rise flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Wordmark className="h-7 w-auto" />
@@ -191,7 +192,7 @@ export function TrackerPage({ subject = null }: { subject?: TrackerSubject } = {
 
       {overview.isLoading && (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
+          <RadarLoader size={96} label="Scanning" />
         </div>
       )}
 
@@ -279,7 +280,7 @@ export function TrackerPage({ subject = null }: { subject?: TrackerSubject } = {
                 ))}
               </div>
             )}
-            {tab === 'agents' && <AgentsTab agents={overview.data.stats.top_agents} />}
+            {tab === 'agents' && <AgentHoneycomb agents={overview.data.stats.top_agents} />}
             {tab === 'maps' && <MapsTab maps={overview.data.stats.top_maps} />}
             {tab === 'arsenal' && <ArsenalTab weapons={overview.data.stats.top_weapons} />}
             {tab === 'career' && <CareerTab mode={mode} subject={subject} />}
@@ -919,78 +920,6 @@ function TopMaps({ maps }: { maps: MapStat[] }) {
 // ---------------------------------------------------------------------------
 // Agents / Maps / Arsenal tabs
 // ---------------------------------------------------------------------------
-
-function AgentsTab({ agents }: { agents: AgentStat[] }) {
-  if (agents.length === 0)
-    return <p className="py-10 text-center text-sm text-muted-foreground">No agent data yet.</p>
-  return (
-    <div className="clip-bevel glass animate-rise relative overflow-hidden border border-border">
-      <div
-        className="animate-pulse-glow pointer-events-none absolute inset-x-0 top-0 z-[2] h-px"
-        style={{ background: 'linear-gradient(90deg, transparent 4%, #a374ff 40%, #a374ff 60%, transparent 96%)' }}
-        aria-hidden
-      />
-      <span className="pointer-events-none absolute left-0 top-0 z-[2] h-3 w-3 border-l-2 border-t-2 border-[#a374ff]/70" aria-hidden />
-      <span className="pointer-events-none absolute bottom-0 right-0 z-[2] h-3 w-3 border-b-2 border-r-2 border-[#a374ff]/70" aria-hidden />
-      <div className="overflow-x-auto">
-      <table className="w-full min-w-[780px] text-sm">
-        <thead>
-          <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
-            <th className="px-4 py-2.5 font-medium">#</th>
-            <th className="px-2 py-2.5 font-medium">Agent</th>
-            <th className="px-2 py-2.5 text-right font-medium">Games</th>
-            <th className="px-2 py-2.5 text-right font-medium">Win %</th>
-            <th className="px-2 py-2.5 text-right font-medium">K/D</th>
-            <th className="px-2 py-2.5 text-right font-medium">ACS</th>
-            <th className="px-2 py-2.5 text-right font-medium">ADR</th>
-            <th className="px-2 py-2.5 text-right font-medium">KAST</th>
-            <th className="px-2 py-2.5 text-right font-medium">HS%</th>
-            <th className="px-2 py-2.5 text-right font-medium">FB</th>
-            <th className="px-2 py-2.5 text-right font-medium">MK</th>
-            <th className="px-4 py-2.5 text-right font-medium">Score</th>
-          </tr>
-        </thead>
-        <tbody>
-          {agents.map((a, i) => (
-            <tr key={a.agent} className="hud-row [--row-accent:#a374ff] border-t border-border/40">
-              <td className="px-4 py-2.5">
-                <RankNumber n={i + 1} />
-              </td>
-              <td className="px-2 py-2.5">
-                <div className="flex items-center gap-2.5">
-                  {a.agent_image ? (
-                    <img src={a.agent_image} alt="" className="h-8 w-8 rounded-sm ring-1 ring-white/10" loading="lazy" />
-                  ) : (
-                    <div className="h-8 w-8 rounded-sm bg-muted" />
-                  )}
-                  <span className="font-medium">{a.agent || 'Unknown'}</span>
-                </div>
-              </td>
-              <td className="px-2 py-2.5 text-right tabular-nums">{a.games}</td>
-              <td
-                className="px-2 py-2.5 text-right font-semibold tabular-nums"
-                style={{ color: a.win_rate >= 50 ? WIN_COLOR : LOSS_COLOR }}
-              >
-                {a.win_rate}%
-              </td>
-              <td className="px-2 py-2.5 text-right tabular-nums">{a.kd.toFixed(2)}</td>
-              <td className="px-2 py-2.5 text-right tabular-nums">{a.avg_acs}</td>
-              <td className="px-2 py-2.5 text-right tabular-nums">{a.adr.toFixed(0)}</td>
-              <td className="px-2 py-2.5 text-right tabular-nums">{a.kast}%</td>
-              <td className="px-2 py-2.5 text-right tabular-nums">{a.hs_percent}%</td>
-              <td className="px-2 py-2.5 text-right tabular-nums">{a.first_bloods}</td>
-              <td className="px-2 py-2.5 text-right tabular-nums">{a.multikills}</td>
-              <td className="px-4 py-2.5 text-right">
-                <RatingBadge value={a.avg_rating} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      </div>
-    </div>
-  )
-}
 
 function MapsTab({ maps }: { maps: MapStat[] }) {
   if (maps.length === 0)
